@@ -2,99 +2,99 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { 
-  MessageSquare, 
+  FileText, 
   Search, 
   ChevronLeft, 
   ChevronRight 
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Relance {
+interface Encaissement {
   id: number;
   tenant: string;
-  phone: string;
+  subtitle: string;
   property: string;
-  delayLabel: string;
-  delayDays: number;
+  amount: string;
+  date: string;
 }
 
-const mockRelances: Relance[] = [
+const mockEncaissements: Encaissement[] = [
   {
     id: 1,
-    tenant: 'Aïssatou Fall',
-    phone: '+221 78 345 67 89',
-    property: 'Studio 1',
-    delayLabel: 'En retard - 10 j',
-    delayDays: 10,
+    tenant: 'Mame Diop',
+    subtitle: 'Règlement reçu par transfert/espèces',
+    property: 'Appartement 2A',
+    amount: '250 000 F',
+    date: '15 Août 2026',
   },
   {
     id: 2,
-    tenant: 'Say',
-    phone: '781556521',
-    property: '000000000',
-    delayLabel: 'En retard - 7 j',
-    delayDays: 7,
+    tenant: 'Samba Ndiaye',
+    subtitle: 'Règlement reçu par transfert/espèces',
+    property: 'Appartement 3B',
+    amount: '180 000 F',
+    date: '14 Août 2026',
   },
   {
     id: 3,
-    tenant: 'Samba Ndiaye',
-    phone: '+221 76 234 56 78',
-    property: 'Appartement 3B',
-    delayLabel: 'En retard - 15 j',
-    delayDays: 15,
+    tenant: 'Fatou Sow',
+    subtitle: 'Règlement reçu par transfert/espèces',
+    property: 'Villa 12 - Fann',
+    amount: '450 000 F',
+    date: '14 Août 2026',
   },
   {
     id: 4,
-    tenant: 'Amadou Diallo',
-    phone: '+221 76 543 21 09',
-    property: 'Immeuble B - Appt 9',
-    delayLabel: 'En retard - 5 j',
-    delayDays: 5,
+    tenant: 'Ibrahima Sarr',
+    subtitle: 'Règlement reçu par transfert/espèces',
+    property: 'Immeuble A - Appt 1',
+    amount: '120 000 F',
+    date: '13 Août 2026',
   },
   {
     id: 5,
     tenant: 'Khady Fall',
-    phone: '+221 77 999 00 11',
+    subtitle: 'Règlement reçu par transfert/espèces',
     property: 'Immeuble A - Appt 3',
-    delayLabel: 'En retard - 12 j',
-    delayDays: 12,
+    amount: '160 000 F',
+    date: '12 Août 2026',
   },
   {
     id: 6,
-    tenant: 'Ibrahima Kane',
-    phone: '+221 77 111 22 33',
-    property: 'Appartement C2',
-    delayLabel: 'En retard - 4 j',
-    delayDays: 4,
+    tenant: 'Abdoulaye Ba',
+    subtitle: 'Règlement reçu par transfert/espèces',
+    property: 'Studio 2',
+    amount: '90 000 F',
+    date: '11 Août 2026',
   },
   {
     id: 7,
-    tenant: 'Seydou Sow',
-    phone: '+221 78 444 55 66',
-    property: 'Villa 5',
-    delayLabel: 'En retard - 9 j',
-    delayDays: 9,
+    tenant: 'Ramatoulaye Diallo',
+    subtitle: 'Règlement reçu par transfert/espèces',
+    property: 'Immeuble B - Appt 5',
+    amount: '210 000 F',
+    date: '10 Août 2026',
   },
   {
     id: 8,
-    tenant: 'Fatou Ndiaye',
-    phone: '+221 76 333 44 55',
-    property: 'Immeuble D - Appt 8',
-    delayLabel: 'En retard - 3 j',
-    delayDays: 3,
+    tenant: 'Babacar Ndiaye',
+    subtitle: 'Règlement reçu par transfert/espèces',
+    property: 'Villa 4 - Almadies',
+    amount: '600 000 F',
+    date: '09 Août 2026',
   },
 ];
 
-export default function RelancesPage() {
+export default function EncaissementsPage() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Filtered Relances
-  const filteredRelances = useMemo(() => {
-    return mockRelances.filter((rel) => 
-      rel.tenant.toLowerCase().includes(search.toLowerCase()) ||
-      rel.property.toLowerCase().includes(search.toLowerCase())
+  // Filtered Encaissements
+  const filteredEncaissements = useMemo(() => {
+    return mockEncaissements.filter((tx) => 
+      tx.tenant.toLowerCase().includes(search.toLowerCase()) ||
+      tx.property.toLowerCase().includes(search.toLowerCase())
     );
   }, [search]);
 
@@ -104,14 +104,14 @@ export default function RelancesPage() {
   }, [search]);
 
   // Pagination calculations
-  const totalPages = Math.ceil(filteredRelances.length / itemsPerPage) || 1;
-  const paginatedRelances = useMemo(() => {
+  const totalPages = Math.ceil(filteredEncaissements.length / itemsPerPage) || 1;
+  const paginatedEncaissements = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredRelances.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredRelances, currentPage]);
+    return filteredEncaissements.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredEncaissements, currentPage]);
 
-  const handleSendWhatsApp = (tenant: string) => {
-    toast.success(`Relance WhatsApp envoyée à ${tenant}`);
+  const handleShowQuittance = (tenant: string) => {
+    toast.info(`Affichage de la quittance pour ${tenant}`);
   };
 
   return (
@@ -120,26 +120,26 @@ export default function RelancesPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#E5B842]">
-            Alertes de retard
+            Transactions Agence
           </span>
           <h1 
             className="text-3xl md:text-4xl font-normal text-white mt-1"
             style={{ fontFamily: 'Georgia, ui-serif, serif' }}
           >
-            Retards & Relances
+            Suivi des Encaissements
           </h1>
           <p className="text-sm text-neutral-400 mt-1">
-            Retrouvez les locataires en attente de paiement et envoyez un rappel en un clic.
+            Consultez la liste des loyers réglés pour le mois en cours.
           </p>
         </div>
       </div>
 
-      {/* Main Card */}
+      {/* Table Card */}
       <Card className="bg-[#121318] border-white/5 text-white">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
-          <CardTitle className="text-lg font-bold">Loyers en attente</CardTitle>
+          <CardTitle className="text-lg font-bold">Transactions validées</CardTitle>
           
-          {/* Optional Search bar for premium feel */}
+          {/* Optional Search bar to keep interface premium */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
             <input 
@@ -158,28 +158,28 @@ export default function RelancesPage() {
                 <tr className="border-b border-white/5 text-neutral-400 font-medium">
                   <th className="pb-3 text-xs uppercase tracking-wider">Locataire</th>
                   <th className="pb-3 text-xs uppercase tracking-wider">Logement</th>
-                  <th className="pb-3 text-xs uppercase tracking-wider">Échéance</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Montant perçu</th>
                   <th className="pb-3 text-right text-xs uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {paginatedRelances.length > 0 ? (
-                  paginatedRelances.map((rel) => (
-                    <tr key={rel.id} className="group hover:bg-white/[0.01]">
+                {paginatedEncaissements.length > 0 ? (
+                  paginatedEncaissements.map((tx) => (
+                    <tr key={tx.id} className="group hover:bg-white/[0.01]">
                       <td className="py-4">
                         <div>
-                          <p className="font-semibold text-white text-base leading-snug">{rel.tenant}</p>
-                          <p className="text-xs text-neutral-500 mt-0.5">{rel.phone}</p>
+                          <p className="font-semibold text-white text-base leading-snug">{tx.tenant}</p>
+                          <p className="text-xs text-neutral-500 mt-0.5">{tx.subtitle}</p>
                         </div>
                       </td>
-                      <td className="py-4 text-neutral-300 text-sm">{rel.property}</td>
-                      <td className="py-4 font-semibold text-rose-500 text-sm">{rel.delayLabel}</td>
+                      <td className="py-4 text-neutral-300 text-sm">{tx.property}</td>
+                      <td className="py-4 font-mono font-semibold text-emerald-400 text-sm">{tx.amount}</td>
                       <td className="py-4 text-right">
                         <Button 
-                          onClick={() => handleSendWhatsApp(rel.tenant)}
-                          className="bg-neutral-900 hover:bg-neutral-800 border border-white/5 text-[#E5B842] font-semibold text-xs gap-1.5 px-4.5 py-1 h-8 rounded-lg"
+                          onClick={() => handleShowQuittance(tx.tenant)}
+                          className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-semibold text-xs gap-1.5 px-3 py-1 h-8 rounded-lg"
                         >
-                          <MessageSquare className="h-3.5 w-3.5 fill-[#E5B842]/20" /> Relancer via WhatsApp
+                          <FileText className="h-3.5 w-3.5" /> Voir la quittance
                         </Button>
                       </td>
                     </tr>
@@ -187,7 +187,7 @@ export default function RelancesPage() {
                 ) : (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-neutral-500">
-                      Aucun retard à relancer trouvé.
+                      Aucun encaissement trouvé.
                     </td>
                   </tr>
                 )}
@@ -200,15 +200,15 @@ export default function RelancesPage() {
             <div>
               Affichage de{' '}
               <span className="font-semibold text-white">
-                {filteredRelances.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
+                {filteredEncaissements.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
               </span>{' '}
               à{' '}
               <span className="font-semibold text-white">
-                {Math.min(currentPage * itemsPerPage, filteredRelances.length)}
+                {Math.min(currentPage * itemsPerPage, filteredEncaissements.length)}
               </span>{' '}
               sur{' '}
-              <span className="font-semibold text-white">{filteredRelances.length}</span>{' '}
-              locataires en retard
+              <span className="font-semibold text-white">{filteredEncaissements.length}</span>{' '}
+              transactions
             </div>
 
             <div className="flex items-center gap-2">

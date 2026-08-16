@@ -1,264 +1,454 @@
 import { useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  Users, 
-  BellRing, 
-  CreditCard, 
-  TrendingUp, 
-  LogOut, 
-  ArrowUpRight, 
-  Activity,
-  CheckCircle2,
-  AlertCircle
+  Plus, 
+  ChevronDown, 
+  Send, 
+  CheckCircle2, 
+  ArrowRight,
+  RefreshCw,
+  MoreHorizontal
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
-import { toast } from 'sonner';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+
+// Data for Encaissements Chart (Avr. to Juil.)
+const chartData = [
+  { name: 'Avr.', attendu: 500000, collecte: 150000 },
+  { name: 'Mai', attendu: 600000, collecte: 160000 },
+  { name: 'Juin', attendu: 750000, collecte: 165000 },
+  { name: 'Juil.', attendu: 850000, collecte: 170000 },
+];
+
+// Data for Répartition (Donut)
+const pieData = [
+  { name: 'Collecté', value: 250000, color: '#10B981' }, // green
+  { name: 'Impayés', value: 800000, color: '#EF4444' }, // red
+  { name: 'À suivre', value: 150000, color: '#E5B842' }, // gold
+];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    toast.info('Déconnexion réussie');
-    navigate('/');
-  };
-
-  const stats = [
-    {
-      title: 'Loyers Encaissés',
-      value: '2 450 000 FCFA',
-      change: '+12.5% vs mois dernier',
-      icon: CreditCard,
-      color: 'text-emerald-500',
-    },
-    {
-      title: 'Taux de Recouvrement',
-      value: '94.2%',
-      change: '+3.1% vs mois dernier',
-      icon: TrendingUp,
-      color: 'text-blue-500',
-    },
-    {
-      title: 'Relances Envoyées',
-      value: '184',
-      change: '100% délivrées (SMS/WhatsApp)',
-      icon: BellRing,
-      color: 'text-amber-500',
-    },
-    {
-      title: 'Locataires Actifs',
-      value: '42',
-      change: 'Sur 3 immeubles gérés',
-      icon: Users,
-      color: 'text-indigo-500',
-    },
-  ];
-
-  const recentActivities = [
-    {
-      id: 1,
-      tenant: 'Moussa Diop',
-      property: 'Immeuble A - Appt 4',
-      amount: '150 000 FCFA',
-      status: 'success',
-      date: "Aujourd'hui, 14:32",
-    },
-    {
-      id: 2,
-      tenant: 'Fatou Sow',
-      property: 'Villa 12 - Fann',
-      amount: '450 000 FCFA',
-      status: 'success',
-      date: 'Hier, 18:15',
-    },
-    {
-      id: 3,
-      tenant: 'Amadou Diallo',
-      property: 'Immeuble B - Appt 9',
-      amount: '200 000 FCFA',
-      status: 'pending',
-      date: '12 Août, 10:00',
-    },
-    {
-      id: 4,
-      tenant: 'Awa Ndiaye',
-      property: 'Immeuble A - Appt 2',
-      amount: '180 000 FCFA',
-      status: 'failed',
-      date: '10 Août, 09:12',
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-zinc-950">
-      {/* Header bar */}
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <LayoutDashboard className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg text-foreground">KeurGui Pay</span>
-            <span className="hidden sm:inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
-              Espace Agence
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold">Immo Dakar</p>
-              <p className="text-xs text-muted-foreground">Malick Mbodji</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Déconnexion">
-              <LogOut className="h-4 w-4" />
-            </Button>
+    <div className="space-y-8 bg-[#0A0A0C] text-neutral-200 min-h-screen">
+      {/* Top Header Section */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#E5B842]">
+            Aperçu de l'agence
+          </span>
+          <h1 
+            className="text-3xl md:text-4xl font-normal text-white mt-1"
+            style={{ fontFamily: 'Georgia, ui-serif, serif' }}
+          >
+            Vue d'ensemble
+          </h1>
+          <p className="text-sm text-neutral-400 mt-1">
+            Voici ce qui demande votre attention aujourd'hui.
+          </p>
+          <div className="flex items-center gap-1.5 mt-3 text-emerald-500 text-xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-neutral-400">Toutes les données sont synchronisées</span>
           </div>
         </div>
-      </header>
 
-      {/* Main dashboard content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-8">
-          {/* Welcome section */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-              <p className="text-muted-foreground">
-                Bienvenue dans l'espace de gestion de votre agence.
-              </p>
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          <button className="flex items-center gap-2 rounded-lg bg-neutral-900 border border-white/5 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 transition-colors">
+            Août 2026
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          
+          <Button 
+            className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-semibold gap-1.5 px-4"
+            onClick={() => navigate('/agence/locataires')}
+          >
+            <Plus className="h-4 w-4" /> Ajouter un locataire
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI Cards Row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* KPI 1 */}
+        <Card className="bg-[#121318] border-white/5 text-white relative overflow-hidden group hover:border-[#E5B842]/20 transition-all duration-200">
+          <CardHeader className="pb-2">
+            <span className="text-xs text-neutral-400 font-medium uppercase tracking-wider">Total attendu</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono">1 050 000 F</div>
+            <div className="absolute right-3 bottom-3 text-neutral-800/40 group-hover:text-[#E5B842]/10 transition-colors">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <Button className="w-full sm:w-auto gap-2">
-              <Activity className="h-4 w-4" /> Nouvel Immeuble
-            </Button>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Stats grid */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat, i) => {
-              const Icon = stat.icon;
-              return (
-                <Card key={i}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      {stat.title}
-                    </CardTitle>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stat.value}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {stat.change}
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+        {/* KPI 2 */}
+        <Card className="bg-[#121318] border-white/5 text-white relative overflow-hidden group hover:border-[#E5B842]/20 transition-all duration-200">
+          <CardHeader className="pb-2">
+            <span className="text-xs text-neutral-400 font-medium uppercase tracking-wider">Collecté</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono text-emerald-500">250 000 F</div>
+            <div className="absolute right-3 bottom-3 text-neutral-800/40 group-hover:text-emerald-500/10 transition-colors">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Main sections layout */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Recent activity card */}
-            <Card className="col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
+        {/* KPI 3 */}
+        <Card className="bg-[#121318] border-white/5 text-white relative overflow-hidden group hover:border-[#E5B842]/20 transition-all duration-200">
+          <CardHeader className="pb-2">
+            <span className="text-xs text-neutral-400 font-medium uppercase tracking-wider">Impayés</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono text-[#E5B842]">800 000 F</div>
+            <div className="absolute right-3 bottom-3 text-neutral-800/40 group-hover:text-[#E5B842]/10 transition-colors">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* KPI 4 */}
+        <Card className="bg-[#121318] border-white/5 text-white relative overflow-hidden group hover:border-[#E5B842]/20 transition-all duration-200">
+          <CardHeader className="pb-2">
+            <span className="text-xs text-neutral-400 font-medium uppercase tracking-wider">En retard</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-mono text-neutral-200">3 locataires</div>
+            <div className="absolute right-3 bottom-3 text-neutral-800/40 group-hover:text-neutral-200/10 transition-colors">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 2: Encaissements Chart & Répartition Pie */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Encaissements Chart Card */}
+        <Card className="lg:col-span-2 bg-[#121318] border-white/5 text-white">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Encaissements</CardTitle>
+            <CardDescription className="text-neutral-400">Évolution des quatre derniers mois.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v / 1000}k`} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1A1B20', borderColor: '#333333' }}
+                  labelStyle={{ color: '#ffffff' }}
+                />
+                <Bar dataKey="attendu" fill="#E5B842" radius={[4, 4, 0, 0]} opacity={0.8} maxBarSize={45} />
+                <Line type="monotone" dataKey="collecte" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', r: 4 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+            
+            {/* Custom Legend */}
+            <div className="flex items-center justify-center gap-6 text-xs text-neutral-400 mt-4">
+              <span className="flex items-center gap-2">
+                <span className="h-3 w-3 bg-[#E5B842] rounded-sm" /> Attendu
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="h-0.5 w-5 bg-[#10B981] inline-block" /> Collecté
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Répartition Donut Card */}
+        <Card className="bg-[#121318] border-white/5 text-white">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Répartition</CardTitle>
+            <CardDescription className="text-neutral-400">Survolez une part pour le détail.</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[280px] flex flex-col justify-between">
+            <div className="h-[200px] w-full relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Center Info */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-neutral-400 text-xs uppercase">Loyers</span>
+                <span className="text-lg font-bold">1.05M F</span>
+              </div>
+            </div>
+
+            {/* Donut Legend */}
+            <div className="grid grid-cols-3 gap-2 text-center text-xs text-neutral-400 pb-2">
+              {pieData.map((d, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="text-[11px]">{d.name}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 3: Actions prioritaires, Activité récente, Performance du mois */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Actions prioritaires */}
+        <Card className="bg-[#121318] border-white/5 text-white flex flex-col justify-between">
+          <CardHeader className="pb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">À traiter aujourd'hui</span>
+            <div className="flex items-center justify-between mt-1">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                Actions prioritaires
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#E5B842]/10 text-xs font-semibold text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20">
+                  3
+                </span>
+              </CardTitle>
+              <MoreHorizontal className="h-4 w-4 text-neutral-400" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 flex-1 mt-4">
+            {/* Item 1 */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div>
+                <p className="font-medium text-white text-sm">Samba Ndiaye</p>
+                <p className="text-xs text-neutral-400">Appartement 2A - 150 000 F</p>
+              </div>
+              <button 
+                onClick={() => toast.success('Relance envoyée à Samba Ndiaye')}
+                className="rounded-full bg-rose-950/30 border border-rose-500/20 px-3 py-1 text-xs text-rose-400 hover:bg-rose-950/60 transition-colors"
+              >
+                Relancer <span className="text-[10px] opacity-80">1j</span>
+              </button>
+            </div>
+            {/* Item 2 */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div>
+                <p className="font-medium text-white text-sm">Aïssatou Fall</p>
+                <p className="text-xs text-neutral-400">Studio 1 - 120 000 F</p>
+              </div>
+              <button 
+                onClick={() => toast.success('Relance envoyée à Aïssatou Fall')}
+                className="rounded-full bg-rose-950/30 border border-rose-500/20 px-3 py-1 text-xs text-rose-400 hover:bg-rose-950/60 transition-colors"
+              >
+                Relancer <span className="text-[10px] opacity-80">3j</span>
+              </button>
+            </div>
+            {/* Item 3 */}
+            <div className="flex items-center justify-between pb-1">
+              <div>
+                <p className="font-medium text-white text-sm">Seydou Kane</p>
+                <p className="text-xs text-neutral-400">Appartement 1B - 80 000 F</p>
+              </div>
+              <button 
+                onClick={() => toast.success('Relance envoyée à Seydou Kane')}
+                className="rounded-full bg-rose-950/30 border border-rose-500/20 px-3 py-1 text-xs text-rose-400 hover:bg-rose-950/60 transition-colors"
+              >
+                Relancer <span className="text-[10px] opacity-80">7j</span>
+              </button>
+            </div>
+          </CardContent>
+          <div className="p-4 border-t border-white/5">
+            <button 
+              onClick={() => navigate('/agence/relances')}
+              className="flex items-center gap-1.5 text-xs text-[#E5B842] hover:underline"
+            >
+              Voir toutes les relances <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+        </Card>
+
+        {/* Activité récente */}
+        <Card className="bg-[#121318] border-white/5 text-white">
+          <CardHeader className="pb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#E5B842]">Dernières mises à jour</span>
+            <div className="flex items-center justify-between mt-1">
+              <CardTitle className="text-lg font-semibold">Activité récente</CardTitle>
+              <RefreshCw className="h-4 w-4 text-neutral-400 cursor-pointer hover:text-white transition-colors" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 mt-4">
+            <div className="flex gap-3 border-b border-white/5 pb-3">
+              <div className="h-7 w-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <div className="flex-1 flex justify-between items-start text-xs">
                 <div>
-                  <CardTitle>Encaissés Récents</CardTitle>
-                  <CardDescription>
-                    Statut en temps réel des transactions de loyer.
-                  </CardDescription>
+                  <p className="font-semibold text-white">Paiement enregistré</p>
+                  <p className="text-neutral-400 mt-0.5">Samba Ndiaye - Appartement 2A</p>
                 </div>
-                <Button variant="ghost" size="sm" className="gap-1">
-                  Voir tout <ArrowUpRight className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b text-muted-foreground font-medium">
-                        <th className="pb-3">Locataire</th>
-                        <th className="pb-3">Bien</th>
-                        <th className="pb-3">Montant</th>
-                        <th className="pb-3">Statut</th>
-                        <th className="pb-3 text-right">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {recentActivities.map((act) => (
-                        <tr key={act.id} className="group hover:bg-slate-50/50 dark:hover:bg-zinc-900/50">
-                          <td className="py-3.5 font-medium">{act.tenant}</td>
-                          <td className="py-3.5 text-muted-foreground">{act.property}</td>
-                          <td className="py-3.5 font-semibold">{act.amount}</td>
-                          <td className="py-3.5">
-                            {act.status === 'success' && (
-                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                                <CheckCircle2 className="h-3.5 w-3.5" /> Reçu
-                              </span>
-                            )}
-                            {act.status === 'pending' && (
-                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                <AlertCircle className="h-3.5 w-3.5 animate-pulse" /> Relancé
-                              </span>
-                            )}
-                            {act.status === 'failed' && (
-                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
-                                <AlertCircle className="h-3.5 w-3.5" /> Échoué
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 text-right text-muted-foreground">{act.date}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="text-right text-neutral-400">
+                  <p className="font-semibold text-white">250 000 F</p>
+                  <p className="mt-0.5 text-[10px]">il y a 10 min</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Quick Actions / WhatsApp status card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Canaux de Relance</CardTitle>
-                <CardDescription>
-                  Configuration et statut des notifications automatisées.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div>
-                    <p className="font-semibold">SMS KeurGui</p>
-                    <p className="text-xs text-muted-foreground">99.8% délivrabilité (Orange/Tigo/Free)</p>
-                  </div>
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-400">
-                    Actif
-                  </span>
+            <div className="flex gap-3 border-b border-white/5 pb-3">
+              <div className="h-7 w-7 rounded-full bg-[#E5B842]/10 flex items-center justify-center text-[#E5B842] shrink-0">
+                <Send className="h-4 w-4" />
+              </div>
+              <div className="flex-1 flex justify-between items-start text-xs">
+                <div>
+                  <p className="font-semibold text-white">Relance programmée</p>
+                  <p className="text-neutral-400 mt-0.5">Aissatou Fall - Appartement 1B</p>
                 </div>
-
-                <div className="flex items-center justify-between border-b pb-3">
-                  <div>
-                    <p className="font-semibold">WhatsApp Business</p>
-                    <p className="text-xs text-muted-foreground">Template de relance officiel approuvé</p>
-                  </div>
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-400">
-                    Actif
-                  </span>
+                <div className="text-right text-neutral-400">
+                  <p className="font-semibold text-rose-500">Échéance dépassée</p>
+                  <p className="mt-0.5 text-[10px]">il y a 2h</p>
                 </div>
+              </div>
+            </div>
 
-                <div className="flex items-center justify-between pb-1">
-                  <div>
-                    <p className="font-semibold">Passerelle Wave / Orange Money</p>
-                    <p className="text-xs text-muted-foreground">Encaissement automatique SN</p>
-                  </div>
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-400">
-                    Connecté
-                  </span>
+            <div className="flex gap-3 pb-1">
+              <div className="h-7 w-7 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+                <Plus className="h-4 w-4" />
+              </div>
+              <div className="flex-1 flex justify-between items-start text-xs">
+                <div>
+                  <p className="font-semibold text-white">Nouveau locataire</p>
+                  <p className="text-neutral-400 mt-0.5">Aissatou Fall - Studio 1</p>
                 </div>
+                <div className="text-right text-neutral-400">
+                  <p className="font-semibold text-[#E5B842]">à valider</p>
+                  <p className="mt-0.5 text-[10px]">Hier</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                <Button className="w-full mt-4" variant="outline">
-                  Configurer les canaux
-                </Button>
-              </CardContent>
-            </Card>
+        {/* Performance du mois */}
+        <Card className="bg-[#121318] border-white/5 text-white flex flex-col justify-between">
+          <CardHeader>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Performance du mois</span>
+          </CardHeader>
+          <CardContent className="space-y-6 flex-1 flex flex-col justify-center">
+            {/* Radial / Donut Gauge */}
+            <div className="flex items-center gap-6">
+              <div className="relative h-20 w-20 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { value: 24, color: '#E5B842' },
+                        { value: 76, color: '#222222' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={30}
+                      outerRadius={40}
+                      startAngle={90}
+                      endAngle={-270}
+                      dataKey="value"
+                    >
+                      <Cell fill="#E5B842" />
+                      <Cell fill="#222222" />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-sm font-bold">24%</span>
+                </div>
+              </div>
+
+              <div>
+                <p className="font-bold text-white text-sm">Objectif mensuel</p>
+                <p className="text-xs text-neutral-400 mt-1">250 000 F collectés sur 1 050 000 F</p>
+              </div>
+            </div>
+
+            {/* Flat Progress bar */}
+            <div className="space-y-2">
+              <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+                <div className="h-full bg-[#E5B842] rounded-full" style={{ width: '24%' }} />
+              </div>
+              <div className="flex justify-between text-[10px] text-neutral-400 font-medium">
+                <span>0%</span>
+                <span>100%</span>
+              </div>
+            </div>
+          </CardContent>
+          <div className="p-4 border-t border-white/5 text-[11px] text-neutral-400">
+            Quelques relances peuvent encore améliorer ce résultat.
           </div>
-        </div>
-      </main>
+        </Card>
+      </div>
+
+      {/* Row 4: Locataires à suivre Table */}
+      <Card className="bg-[#121318] border-white/5 text-white">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle className="text-lg font-semibold">Locataires à suivre</CardTitle>
+            <CardDescription className="text-neutral-400">Échéances et statut des paiements.</CardDescription>
+          </div>
+          <button 
+            onClick={() => navigate('/agence/locataires')}
+            className="flex items-center gap-1 text-xs text-[#E5B842] hover:underline"
+          >
+            Voir les locataires <ArrowRight className="h-3 w-3" />
+          </button>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-neutral-400 font-medium">
+                  <th className="pb-3 text-xs uppercase tracking-wider">Locataire</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Logement</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Loyer</th>
+                  <th className="pb-3 text-right text-xs uppercase tracking-wider">Statut</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                <tr className="group hover:bg-white/[0.02]">
+                  <td className="py-4 font-medium text-white">Mame Diop</td>
+                  <td className="py-4 text-neutral-400">Appartement 2A</td>
+                  <td className="py-4 font-mono font-semibold">250 000 F</td>
+                  <td className="py-4 text-right">
+                    <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+                      Payé
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
