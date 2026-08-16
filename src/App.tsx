@@ -1,10 +1,13 @@
+import { AppRouter } from '@/routes/AppRouter';
+import { Toaster } from 'sonner';
 
 const App = () => {
   return (
-    <div >
-      
-    </div>
-  )
-}
+    <>
+      <AppRouter />
+      <Toaster richColors position="top-right" />
+    </>
+  );
+};
 
-export default App
+export default App;
