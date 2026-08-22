@@ -7,96 +7,27 @@ import {
   ChevronLeft, 
   ChevronRight 
 } from 'lucide-react';
+import { useAgencyStore } from '@/stores/agencyStore';
 import { toast } from 'sonner';
 
-interface Relance {
-  id: number;
-  tenant: string;
-  phone: string;
-  property: string;
-  delayLabel: string;
-  delayDays: number;
-}
-
-const mockRelances: Relance[] = [
-  {
-    id: 1,
-    tenant: 'Aïssatou Fall',
-    phone: '+221 78 345 67 89',
-    property: 'Studio 1',
-    delayLabel: 'En retard - 10 j',
-    delayDays: 10,
-  },
-  {
-    id: 2,
-    tenant: 'Say',
-    phone: '781556521',
-    property: '000000000',
-    delayLabel: 'En retard - 7 j',
-    delayDays: 7,
-  },
-  {
-    id: 3,
-    tenant: 'Samba Ndiaye',
-    phone: '+221 76 234 56 78',
-    property: 'Appartement 3B',
-    delayLabel: 'En retard - 15 j',
-    delayDays: 15,
-  },
-  {
-    id: 4,
-    tenant: 'Amadou Diallo',
-    phone: '+221 76 543 21 09',
-    property: 'Immeuble B - Appt 9',
-    delayLabel: 'En retard - 5 j',
-    delayDays: 5,
-  },
-  {
-    id: 5,
-    tenant: 'Khady Fall',
-    phone: '+221 77 999 00 11',
-    property: 'Immeuble A - Appt 3',
-    delayLabel: 'En retard - 12 j',
-    delayDays: 12,
-  },
-  {
-    id: 6,
-    tenant: 'Ibrahima Kane',
-    phone: '+221 77 111 22 33',
-    property: 'Appartement C2',
-    delayLabel: 'En retard - 4 j',
-    delayDays: 4,
-  },
-  {
-    id: 7,
-    tenant: 'Seydou Sow',
-    phone: '+221 78 444 55 66',
-    property: 'Villa 5',
-    delayLabel: 'En retard - 9 j',
-    delayDays: 9,
-  },
-  {
-    id: 8,
-    tenant: 'Fatou Ndiaye',
-    phone: '+221 76 333 44 55',
-    property: 'Immeuble D - Appt 8',
-    delayLabel: 'En retard - 3 j',
-    delayDays: 3,
-  },
-];
-
 export default function RelancesPage() {
+  const { locataires, relancerLocataire } = useAgencyStore();
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Filtered Relances
+  // Filter late locataires dynamically
+  const lateLocataires = useMemo(() => {
+    return locataires.filter((l) => l.status === 'late');
+  }, [locataires]);
+
+  // Filter by search query
   const filteredRelances = useMemo(() => {
-    return mockRelances.filter((rel) => 
-      rel.tenant.toLowerCase().includes(search.toLowerCase()) ||
+    return lateLocataires.filter((rel) => 
+      rel.name.toLowerCase().includes(search.toLowerCase()) ||
       rel.property.toLowerCase().includes(search.toLowerCase())
     );
-  }, [search]);
+  }, [lateLocataires, search]);
 
   // Reset page on search change
   useMemo(() => {
@@ -110,8 +41,9 @@ export default function RelancesPage() {
     return filteredRelances.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredRelances, currentPage]);
 
-  const handleSendWhatsApp = (tenant: string) => {
-    toast.success(`Relance WhatsApp envoyée à ${tenant}`);
+  const handleSendWhatsApp = (id: number, name: string) => {
+    relancerLocataire(id);
+    toast.success(`Relance WhatsApp envoyée à ${name}`);
   };
 
   return (
@@ -139,7 +71,7 @@ export default function RelancesPage() {
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
           <CardTitle className="text-lg font-bold">Loyers en attente</CardTitle>
           
-          {/* Optional Search bar for premium feel */}
+          {/* Search bar */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
             <input 
@@ -168,15 +100,15 @@ export default function RelancesPage() {
                     <tr key={rel.id} className="group hover:bg-white/[0.01]">
                       <td className="py-4">
                         <div>
-                          <p className="font-semibold text-white text-base leading-snug">{rel.tenant}</p>
+                          <p className="font-semibold text-white text-base leading-snug">{rel.name}</p>
                           <p className="text-xs text-neutral-500 mt-0.5">{rel.phone}</p>
                         </div>
                       </td>
                       <td className="py-4 text-neutral-300 text-sm">{rel.property}</td>
-                      <td className="py-4 font-semibold text-rose-500 text-sm">{rel.delayLabel}</td>
+                      <td className="py-4 font-semibold text-rose-500 text-sm">En retard - {rel.delayDays} j</td>
                       <td className="py-4 text-right">
                         <Button 
-                          onClick={() => handleSendWhatsApp(rel.tenant)}
+                          onClick={() => handleSendWhatsApp(rel.id, rel.name)}
                           className="bg-neutral-900 hover:bg-neutral-800 border border-white/5 text-[#E5B842] font-semibold text-xs gap-1.5 px-4.5 py-1 h-8 rounded-lg"
                         >
                           <MessageSquare className="h-3.5 w-3.5 fill-[#E5B842]/20" /> Relancer via WhatsApp

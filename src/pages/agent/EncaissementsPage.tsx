@@ -7,96 +7,22 @@ import {
   ChevronLeft, 
   ChevronRight 
 } from 'lucide-react';
+import { useAgencyStore } from '@/stores/agencyStore';
 import { toast } from 'sonner';
 
-interface Encaissement {
-  id: number;
-  tenant: string;
-  subtitle: string;
-  property: string;
-  amount: string;
-  date: string;
-}
-
-const mockEncaissements: Encaissement[] = [
-  {
-    id: 1,
-    tenant: 'Mame Diop',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Appartement 2A',
-    amount: '250 000 F',
-    date: '15 Août 2026',
-  },
-  {
-    id: 2,
-    tenant: 'Samba Ndiaye',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Appartement 3B',
-    amount: '180 000 F',
-    date: '14 Août 2026',
-  },
-  {
-    id: 3,
-    tenant: 'Fatou Sow',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Villa 12 - Fann',
-    amount: '450 000 F',
-    date: '14 Août 2026',
-  },
-  {
-    id: 4,
-    tenant: 'Ibrahima Sarr',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Immeuble A - Appt 1',
-    amount: '120 000 F',
-    date: '13 Août 2026',
-  },
-  {
-    id: 5,
-    tenant: 'Khady Fall',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Immeuble A - Appt 3',
-    amount: '160 000 F',
-    date: '12 Août 2026',
-  },
-  {
-    id: 6,
-    tenant: 'Abdoulaye Ba',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Studio 2',
-    amount: '90 000 F',
-    date: '11 Août 2026',
-  },
-  {
-    id: 7,
-    tenant: 'Ramatoulaye Diallo',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Immeuble B - Appt 5',
-    amount: '210 000 F',
-    date: '10 Août 2026',
-  },
-  {
-    id: 8,
-    tenant: 'Babacar Ndiaye',
-    subtitle: 'Règlement reçu par transfert/espèces',
-    property: 'Villa 4 - Almadies',
-    amount: '600 000 F',
-    date: '09 Août 2026',
-  },
-];
-
 export default function EncaissementsPage() {
+  const { encaissements } = useAgencyStore();
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
   // Filtered Encaissements
   const filteredEncaissements = useMemo(() => {
-    return mockEncaissements.filter((tx) => 
+    return encaissements.filter((tx) => 
       tx.tenant.toLowerCase().includes(search.toLowerCase()) ||
       tx.property.toLowerCase().includes(search.toLowerCase())
     );
-  }, [search]);
+  }, [encaissements, search]);
 
   // Reset page on search change
   useMemo(() => {
@@ -139,7 +65,7 @@ export default function EncaissementsPage() {
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
           <CardTitle className="text-lg font-bold">Transactions validées</CardTitle>
           
-          {/* Optional Search bar to keep interface premium */}
+          {/* Search bar */}
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
             <input 
@@ -173,7 +99,7 @@ export default function EncaissementsPage() {
                         </div>
                       </td>
                       <td className="py-4 text-neutral-300 text-sm">{tx.property}</td>
-                      <td className="py-4 font-mono font-semibold text-emerald-400 text-sm">{tx.amount}</td>
+                      <td className="py-4 font-mono font-semibold text-emerald-400 text-sm">{tx.amount.toLocaleString()} F</td>
                       <td className="py-4 text-right">
                         <Button 
                           onClick={() => handleShowQuittance(tx.tenant)}

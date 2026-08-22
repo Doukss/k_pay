@@ -20,9 +20,15 @@ export function LoginForm() {
   const onSubmit = async (values: LoginFormValues) => {
     // TODO: brancher l'appel API réel (features/auth/api/auth.api.ts)
     await new Promise((resolve) => setTimeout(resolve, 800));
-    toast.success('Connexion réussie');
+    
+    if (values.email.toLowerCase() === 'admin@keurguipay.sn') {
+      toast.success('Connexion Super Admin réussie');
+      navigate('/admin/dashboard');
+    } else {
+      toast.success('Connexion réussie');
+      navigate('/agence/dashboard');
+    }
     console.log(values);
-    navigate('/agence/dashboard');
   };
 
   return (
