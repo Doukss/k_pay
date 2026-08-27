@@ -20,6 +20,7 @@ import {
   MousePointerClick,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import southero from '@/assets/southero.png';
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -113,6 +114,16 @@ export function Hero() {
           } as React.CSSProperties
         }
       >
+        {/* Background Image Hero */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-30 bg-cover bg-center opacity-[0.25]"
+          style={{
+            backgroundImage: `url(${southero})`,
+            maskImage:
+              'radial-gradient(ellipse 70% 60% at 50% 20%, black 40%, transparent 90%)',
+          }}
+        />
+
         {/* Fond quadrillé "registre comptable" */}
         <div
           className="pointer-events-none absolute inset-0 -z-20 opacity-[0.14]"
