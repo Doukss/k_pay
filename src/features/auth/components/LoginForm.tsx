@@ -7,8 +7,11 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { loginSchema, type LoginFormValues } from '../schemas/login.schema';
 
+import { useAuthStore } from '@/stores/authStore';
+
 export function LoginForm() {
   const navigate = useNavigate();
+  const { login } = useAuthStore();
   const {
     register,
     handleSubmit,
@@ -18,17 +21,17 @@ export function LoginForm() {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
-    // TODO: brancher l'appel API réel (features/auth/api/auth.api.ts)
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 600));
     
+    login(values.email);
+
     if (values.email.toLowerCase() === 'admin@keurguipay.sn') {
       toast.success('Connexion Super Admin réussie');
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard', { replace: true });
     } else {
       toast.success('Connexion réussie');
-      navigate('/agence/dashboard');
+      navigate('/agence/dashboard', { replace: true });
     }
-    console.log(values);
   };
 
   return (

@@ -126,5 +126,142 @@
     }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
     }
+}
+
+/* Custom subtle scrollbar for modern SaaS aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(229, 184, 66, 0.35);
+}
+
+/* =========================================================
+   ADAPTATION DU THÈME CLAIR (Light Mode for Agency & Admin)
+   ========================================================= */
+html:not(.dark) {
+  color-scheme: light;
+}
+
+html:not(.dark) .bg-\[\#0A0A0C\] {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) .bg-\[\#0D0E12\],
+html:not(.dark) .bg-\[\#0E0F14\],
+html:not(.dark) .bg-\[\#0F0F12\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-\[\#121318\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04) !important;
+}
+
+html:not(.dark) .bg-\[\#14151B\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .text-white {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-neutral-100,
+html:not(.dark) .text-neutral-200 {
+  color: #1e293b !important;
+}
+
+html:not(.dark) .text-neutral-300 {
+  color: #334155 !important;
+}
+
+html:not(.dark) .text-neutral-400,
+html:not(.dark) .text-neutral-500 {
+  color: #64748b !important;
+}
+
+html:not(.dark) .border-white\/5,
+html:not(.dark) .border-white\/10,
+html:not(.dark) .border-white\/20 {
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-black\/40,
+html:not(.dark) .bg-black\/30,
+html:not(.dark) .bg-black\/20,
+html:not(.dark) .bg-black\/10 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) input.bg-black\/40,
+html:not(.dark) select.bg-black\/40 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) input.bg-black\/40::placeholder {
+  color: #94a3b8 !important;
+}
+
+html:not(.dark) .bg-neutral-900 {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) .hover\:bg-white\/\[0\.01\]:hover,
+html:not(.dark) .hover\:bg-white\/\[0\.02\]:hover,
+html:not(.dark) .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+html:not(.dark) .bg-rose-500\/10 {
+  background-color: #fff1f2 !important;
+}
+
+html:not(.dark) .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html:not(.dark) .bg-emerald-500\/10 {
+  background-color: #ecfdf5 !important;
+}
+
+html:not(.dark) .text-blue-400 {
+  color: #2563eb !important;
+}
+
+html:not(.dark) .bg-blue-500\/10 {
+  background-color: #eff6ff !important;
+}
+
+html:not(.dark) .bg-amber-500\/10,
+html:not(.dark) .bg-\[\#E5B842\]\/10 {
+  background-color: #fef3c7 !important;
 }

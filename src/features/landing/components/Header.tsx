@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { MobileNav } from './MobileNav';
 import { useScrollHeader } from '../hooks/useScrollHeader';
+import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { NavLink } from '../types';
 
 const NAV_LINKS: NavLink[] = [
@@ -116,6 +117,7 @@ export function Header() {
 
           {/* CTA desktop */}
           <motion.div variants={itemVariants} className="hidden items-center gap-2 md:flex">
+            <ThemeToggle />
             <Link to="/connexion">
               <Button variant="ghost" className="text-foreground/70 hover:text-foreground">
                 Connexion

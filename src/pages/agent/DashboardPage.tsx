@@ -22,7 +22,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { useAgencyStore } from '@/stores/agencyStore';
+import { useAgencyStore, type Locataire } from '@/stores/agencyStore';
+import { createWhatsAppPaymentMessage } from '@/shared/utils/whatsapp';
 import { toast } from 'sonner';
 
 // Historical data for Encaissements Chart (Avr. to Juin)
@@ -48,9 +49,12 @@ export default function DashboardPage() {
     .filter((l) => l.status === 'paid')
     .reduce((acc, curr) => acc + curr.rentVal, 0);
   const totalImpaye = locataires
-    .filter((l) => l.status !== 'paid')
+    .filter((l) => l.status === 'late')
     .reduce((acc, curr) => acc + curr.rentVal, 0);
-  const nombreRetards = locataires.filter((l) => l.status !== 'paid').length;
+  const totalEnAttente = locataires
+    .filter((l) => l.status === 'pending')
+    .reduce((acc, curr) => acc + curr.rentVal, 0);
+  const nombreRetards = locataires.filter((l) => l.status === 'late').length;
 
   // Monthly performance percentage
   const performancePct = totalAttendu > 0 ? Math.round((totalCollecte / totalAttendu) * 100) : 0;
@@ -64,7 +68,7 @@ export default function DashboardPage() {
   const pieData = [
     { name: 'Collecté', value: totalCollecte, color: '#10B981' },
     { name: 'Impayés', value: totalImpaye, color: '#EF4444' },
-    { name: 'À suivre', value: 150000, color: '#E5B842' }, // Constant base to match visual
+    { name: 'En attente', value: totalEnAttente || 100000, color: '#E5B842' },
   ];
 
   // Actions prioritaires (late tenants)
@@ -75,9 +79,13 @@ export default function DashboardPage() {
     toast.success(`Encaissement enregistré pour ${name}`);
   };
 
-  const handleRelancer = (id: number, name: string) => {
-    relancerLocataire(id);
-    toast.success(`Relance WhatsApp envoyée à ${name}`);
+  const handleRelancer = (loc: Locataire) => {
+    relancerLocataire(loc.id);
+    const msg = createWhatsAppPaymentMessage(loc);
+    window.open(msg.whatsappUrl, '_blank');
+    toast.success(`Relance WhatsApp préparée pour ${loc.name}`, {
+      description: `Lien Wave/OM inclus : ${msg.paymentUrl}`,
+    });
   };
 
   return (
@@ -298,7 +306,7 @@ export default function DashboardPage() {
                       Encaisser
                     </button>
                     <button 
-                      onClick={() => handleRelancer(loc.id, loc.name)}
+                      onClick={() => handleRelancer(loc)}
                       className="rounded-full bg-rose-950/30 border border-rose-500/20 px-2.5 py-1 text-[10px] text-rose-400 hover:bg-rose-950/60 transition-colors"
                     >
                       Relancer <span className="text-[9px] opacity-80">{loc.delayDays}j</span>

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface Locataire {
   id: number;
@@ -7,8 +8,9 @@ export interface Locataire {
   phone: string;
   property: string;
   rentVal: number;
-  status: 'paid' | 'late';
+  status: 'paid' | 'late' | 'pending';
   delayDays: number;
+  createdAt?: string;
 }
 
 export interface Encaissement {
@@ -42,7 +44,9 @@ interface AgencyState {
   relancerLocataire: (id: number) => void;
 }
 
-export const useAgencyStore = create<AgencyState>((set) => ({
+export const useAgencyStore = create<AgencyState>()(
+  persist(
+    (set) => ({
   locataires: [
     {
       id: 1,
@@ -53,6 +57,7 @@ export const useAgencyStore = create<AgencyState>((set) => ({
       rentVal: 250000,
       status: 'paid',
       delayDays: 0,
+      createdAt: '12 Août 2026 à 09:15',
     },
     {
       id: 2,
@@ -63,6 +68,7 @@ export const useAgencyStore = create<AgencyState>((set) => ({
       rentVal: 180000,
       status: 'late',
       delayDays: 15,
+      createdAt: '18 Août 2026 à 14:30',
     },
     {
       id: 3,
@@ -73,6 +79,7 @@ export const useAgencyStore = create<AgencyState>((set) => ({
       rentVal: 320000,
       status: 'late',
       delayDays: 10,
+      createdAt: '25 Août 2026 à 11:20',
     },
     {
       id: 4,
@@ -83,6 +90,7 @@ export const useAgencyStore = create<AgencyState>((set) => ({
       rentVal: 300000,
       status: 'late',
       delayDays: 7,
+      createdAt: '01 Sept. 2026 à 17:45',
     },
   ],
   encaissements: [
@@ -126,7 +134,23 @@ export const useAgencyStore = create<AgencyState>((set) => ({
   addLocataire: (loc) =>
     set((state) => {
       const newId = state.locataires.length > 0 ? Math.max(...state.locataires.map((l) => l.id)) + 1 : 1;
-      const newLoc: Locataire = { ...loc, id: newId };
+      const now = new Date();
+      const formattedDate = new Intl.DateTimeFormat('fr-FR', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(now).replace(',', ' à');
+
+      const newLoc: Locataire = {
+        ...loc,
+        status: loc.status || 'pending',
+        delayDays: loc.delayDays ?? 0,
+        id: newId,
+        createdAt: loc.createdAt || formattedDate,
+      };
+
       const newActivity: RecentActivity = {
         id: Date.now(),
         type: 'locataire',
@@ -219,4 +243,9 @@ export const useAgencyStore = create<AgencyState>((set) => ({
         recentActivities: [newActivity, ...state.recentActivities.slice(0, 4)],
       };
     }),
-}));
+  }),
+  {
+    name: 'keurguipay-agency-store',
+  }
+)
+);

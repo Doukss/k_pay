@@ -8,7 +8,7 @@ import {
   animate,
   type Variants,
 } from 'motion/react';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,

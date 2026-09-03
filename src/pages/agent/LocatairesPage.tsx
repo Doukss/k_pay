@@ -14,15 +14,29 @@ import {
   Send,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  Users,
+  CheckCircle2,
+  AlertTriangle,
+  Mail,
+  Clock
 } from 'lucide-react';
-import { useAgencyStore } from '@/stores/agencyStore';
+import { useAgencyStore, type Locataire } from '@/stores/agencyStore';
+import { QuittanceModal, type QuittanceData } from '@/shared/components/QuittanceModal';
+import { createWhatsAppPaymentMessage } from '@/shared/utils/whatsapp';
 import { toast } from 'sonner';
+
+// Helper to normalize phone numbers for reliable comparison (keeps last 9 digits)
+const normalizePhone = (phone: string): string => {
+  const digits = phone.replace(/\D/g, '');
+  return digits.slice(-9);
+};
 
 export default function LocatairesPage() {
   const { 
     locataires, 
     addLocataire, 
+    updateLocataire, 
     deleteLocataire, 
     encaisserLoyer, 
     relancerLocataire 
@@ -32,24 +46,49 @@ export default function LocatairesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'liste' | 'cartes'>('liste');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isAdding, setIsAdding] = useState(false);
   const itemsPerPage = 5;
 
-  // Add Form State
-  const [newLocName, setNewLocName] = useState('');
-  const [newLocEmail, setNewLocEmail] = useState('');
-  const [newLocPhone, setNewLocPhone] = useState('');
-  const [newLocProp, setNewLocProp] = useState('');
-  const [newLocRent, setNewLocRent] = useState('');
+  // Quittance Modal State
+  const [selectedQuittance, setSelectedQuittance] = useState<QuittanceData | null>(null);
+  const [isQuittanceOpen, setIsQuittanceOpen] = useState(false);
+
+  // Add / Edit Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLocataire, setEditingLocataire] = useState<Locataire | null>(null);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    property: '',
+    rentVal: '',
+  });
+
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+    property?: string;
+    rentVal?: string;
+  }>({});
+
+  // Delete Confirmation State
+  const [locataireToDelete, setLocataireToDelete] = useState<Locataire | null>(null);
+
+  // Quick Stats
+  const totalCount = locataires.length;
+  const paidCount = locataires.filter(l => l.status === 'paid').length;
+  const pendingCount = locataires.filter(l => l.status === 'pending').length;
+  const lateCount = locataires.filter(l => l.status === 'late').length;
 
   // Filtered Locataires
   const filteredLocataires = useMemo(() => {
     return locataires.filter((loc) => {
       const matchesSearch = loc.name.toLowerCase().includes(search.toLowerCase()) || 
-                            loc.property.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || 
-                            (statusFilter === 'paid' && loc.status === 'paid') ||
-                            (statusFilter === 'late' && loc.status !== 'paid');
+                            loc.property.toLowerCase().includes(search.toLowerCase()) ||
+                            loc.phone.toLowerCase().includes(search.toLowerCase()) ||
+                            loc.email.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || loc.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [locataires, search, statusFilter]);
@@ -71,45 +110,148 @@ export default function LocatairesPage() {
     toast.success(`Encaissement enregistré pour ${name}`);
   };
 
-  const handleRelancer = (id: number, name: string) => {
-    relancerLocataire(id);
-    toast.success(`Relance WhatsApp envoyée à ${name}`);
+  const handleRelancer = (loc: Locataire) => {
+    relancerLocataire(loc.id);
+    const msg = createWhatsAppPaymentMessage(loc);
+    window.open(msg.whatsappUrl, '_blank');
+    toast.success(`Relance WhatsApp préparée pour ${loc.name}`, {
+      description: `Lien Wave/OM inclus : ${msg.paymentUrl}`,
+    });
   };
 
-  const handleDelete = (id: number, name: string) => {
-    deleteLocataire(id);
-    toast.error(`Locataire ${name} supprimé`);
+  const confirmDelete = () => {
+    if (!locataireToDelete) return;
+    deleteLocataire(locataireToDelete.id);
+    toast.success(`Locataire "${locataireToDelete.name}" supprimé avec succès`);
+    setLocataireToDelete(null);
   };
 
-  const handleAction = (action: string, name: string) => {
-    toast.success(`${action} effectuée pour ${name}`);
+  const handleOpenQuittance = (loc: Locataire) => {
+    setSelectedQuittance({
+      tenantName: loc.name,
+      tenantPhone: loc.phone,
+      property: loc.property,
+      amount: loc.rentVal,
+      month: 'Août 2026',
+      paymentMethod: 'Wave Mobile Money',
+    });
+    setIsQuittanceOpen(true);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  // Open Modal in Add Mode
+  const handleOpenAdd = () => {
+    setEditingLocataire(null);
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      property: '',
+      rentVal: '',
+    });
+    setFormErrors({});
+    setIsModalOpen(true);
+  };
+
+  // Open Modal in Edit Mode
+  const handleOpenEdit = (loc: Locataire) => {
+    setEditingLocataire(loc);
+    setFormData({
+      name: loc.name,
+      email: loc.email,
+      phone: loc.phone,
+      property: loc.property,
+      rentVal: loc.rentVal.toString(),
+    });
+    setFormErrors({});
+    setIsModalOpen(true);
+  };
+
+  // Submit Handler for Add / Edit with Uniqueness Validations
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newLocName || !newLocProp || !newLocRent) {
-      toast.error('Veuillez remplir les champs obligatoires (Nom, Logement, Loyer)');
+    const errors: typeof formErrors = {};
+
+    // 1. Validate Name
+    if (!formData.name.trim()) {
+      errors.name = 'Le nom complet du locataire est obligatoire.';
+    }
+
+    // 2. Validate Property
+    if (!formData.property.trim()) {
+      errors.property = 'Le logement ou numéro de bien est obligatoire.';
+    }
+
+    // 3. Validate Rent
+    if (!formData.rentVal.trim() || isNaN(Number(formData.rentVal)) || Number(formData.rentVal) <= 0) {
+      errors.rentVal = 'Veuillez saisir un loyer valide supérieur à 0 FCFA.';
+    }
+
+    // 4. Validate Email & Uniqueness
+    const trimmedEmail = formData.email.trim().toLowerCase();
+    if (!trimmedEmail) {
+      errors.email = "L'adresse email est obligatoire.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errors.email = 'Veuillez saisir une adresse email valide.';
+    } else {
+      // Check duplicate email (ignoring the tenant itself if in edit mode)
+      const emailExists = locataires.some((l) => 
+        (!editingLocataire || l.id !== editingLocataire.id) && 
+        l.email.trim().toLowerCase() === trimmedEmail
+      );
+      if (emailExists) {
+        errors.email = 'Cette adresse email est déjà enregistrée pour un autre locataire.';
+      }
+    }
+
+    // 5. Validate Phone & Uniqueness
+    const normalizedInputPhone = normalizePhone(formData.phone);
+    if (!formData.phone.trim()) {
+      errors.phone = 'Le numéro de téléphone est obligatoire.';
+    } else if (normalizedInputPhone.length < 9) {
+      errors.phone = 'Numéro invalide (ex: 77 123 45 67 ou +221 77 123 45 67).';
+    } else {
+      // Check duplicate phone (ignoring the tenant itself if in edit mode)
+      const phoneExists = locataires.some((l) => 
+        (!editingLocataire || l.id !== editingLocataire.id) && 
+        normalizePhone(l.phone) === normalizedInputPhone
+      );
+      if (phoneExists) {
+        errors.phone = 'Ce numéro de téléphone est déjà attribué à un autre locataire.';
+      }
+    }
+
+    // If there are validation errors, block submission
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error('Veuillez corriger les erreurs de validation');
       return;
     }
 
-    addLocataire({
-      name: newLocName,
-      email: newLocEmail || `${newLocName.toLowerCase().replace(/\s+/g, '')}@email.sn`,
-      phone: newLocPhone || '+221 77 000 00 00',
-      property: newLocProp,
-      rentVal: parseInt(newLocRent) || 0,
-      status: 'late',
-      delayDays: 1,
-    });
+    if (editingLocataire) {
+      // MODE MODIFICATION
+      updateLocataire(editingLocataire.id, {
+        name: formData.name.trim(),
+        email: trimmedEmail,
+        phone: formData.phone.trim(),
+        property: formData.property.trim(),
+        rentVal: parseInt(formData.rentVal, 10),
+      });
+      toast.success(`Locataire "${formData.name.trim()}" mis à jour avec succès`);
+    } else {
+      // MODE AJOUT
+      addLocataire({
+        name: formData.name.trim(),
+        email: trimmedEmail,
+        phone: formData.phone.trim(),
+        property: formData.property.trim(),
+        rentVal: parseInt(formData.rentVal, 10),
+        status: 'pending',
+        delayDays: 0,
+      });
+      toast.success(`Nouveau locataire "${formData.name.trim()}" ajouté avec succès (Statut : En attente)`);
+    }
 
-    // Reset Form
-    setNewLocName('');
-    setNewLocEmail('');
-    setNewLocPhone('');
-    setNewLocProp('');
-    setNewLocRent('');
-    setIsAdding(false);
-    toast.success('Nouveau locataire ajouté avec succès');
+    setIsModalOpen(false);
   };
 
   return (
@@ -127,60 +269,128 @@ export default function LocatairesPage() {
             Gestion des Locataires
           </h1>
           <p className="text-sm text-neutral-400 mt-1">
-            Retrouvez, modifiez, relancez vos locataires ou générez leurs quittances de loyer.
+            Supervisez votre portefeuille, enregistrez les règlements et éditez les quittances certifiées.
           </p>
         </div>
 
         <Button 
-          className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-semibold gap-1.5 px-4 self-start md:self-auto"
-          onClick={() => setIsAdding(true)}
+          className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-semibold gap-1.5 px-4 self-start md:self-auto shadow-md"
+          onClick={handleOpenAdd}
         >
           <UserPlus className="h-4 w-4" /> Ajouter un locataire
         </Button>
       </div>
 
-      {/* Add Locataire Modal Popup */}
-      {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+      {/* KPI Overview Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">Total Locataires</p>
+            <p className="text-2xl font-bold font-mono text-white mt-1">{totalCount}</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <Users className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">Loyers Réglés</p>
+            <p className="text-2xl font-bold font-mono text-emerald-400 mt-1">{paidCount}</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">En Attente</p>
+            <p className="text-2xl font-bold font-mono text-[#E5B842] mt-1">{pendingCount}</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[#E5B842]">
+            <Clock className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">En Retard</p>
+            <p className="text-2xl font-bold font-mono text-rose-400 mt-1">{lateCount}</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Unified Add / Edit Locataire Modal Popup */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div 
             className="fixed inset-0" 
-            onClick={() => setIsAdding(false)} 
+            onClick={() => setIsModalOpen(false)} 
           />
-          <Card className="relative z-10 w-full max-w-xl bg-[#121318] border border-white/10 text-white shadow-2xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <Card className="relative z-10 w-full max-w-xl bg-[#14151B] border border-white/10 text-white shadow-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5">
               <div>
-                <CardTitle className="text-xl">Ajouter un nouveau locataire</CardTitle>
-                <CardDescription className="text-neutral-400 mt-1">Remplissez les informations ci-dessous.</CardDescription>
+                <CardTitle className="text-xl">
+                  {editingLocataire ? `Modifier le locataire : ${editingLocataire.name}` : 'Ajouter un nouveau locataire'}
+                </CardTitle>
+                <CardDescription className="text-neutral-400 mt-1">
+                  {editingLocataire 
+                    ? 'Mettez à jour les coordonnées et informations locatives du résident.' 
+                    : 'Remplissez les informations ci-dessous. L\'email et le téléphone doivent être uniques.'}
+                </CardDescription>
+                {editingLocataire?.createdAt && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] text-neutral-300">
+                    <Clock className="h-3 w-3 text-[#E5B842]" />
+                    <span>Ajouté le {editingLocataire.createdAt}</span>
+                  </div>
+                )}
               </div>
               <button 
-                onClick={() => setIsAdding(false)}
+                onClick={() => setIsModalOpen(false)}
                 className="rounded-lg p-1 text-neutral-400 hover:text-white hover:bg-white/5 transition-all"
               >
                 <X className="h-5 w-5" />
               </button>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddSubmit} className="space-y-4">
+            <CardContent className="pt-6">
+              <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-xs text-neutral-400 font-medium">Nom complet *</label>
                     <input 
                       type="text" 
                       placeholder="Moussa Ndiaye" 
-                      value={newLocName}
-                      onChange={(e) => setNewLocName(e.target.value)}
-                      className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-[#E5B842]/40"
+                      value={formData.name}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        if (formErrors.name) setFormErrors({ ...formErrors, name: undefined });
+                      }}
+                      className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none ${formErrors.name ? 'border-rose-500 focus:border-rose-500' : 'border-white/5 focus:border-[#E5B842]/40'}`}
                     />
+                    {formErrors.name && (
+                      <p className="text-[11px] text-rose-400 font-medium">{formErrors.name}</p>
+                    )}
                   </div>
+
                   <div className="space-y-1.5">
                     <label className="text-xs text-neutral-400 font-medium">Logement / Bien *</label>
                     <input 
                       type="text" 
                       placeholder="Appartement 4B" 
-                      value={newLocProp}
-                      onChange={(e) => setNewLocProp(e.target.value)}
-                      className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-[#E5B842]/40"
+                      value={formData.property}
+                      onChange={(e) => {
+                        setFormData({ ...formData, property: e.target.value });
+                        if (formErrors.property) setFormErrors({ ...formErrors, property: undefined });
+                      }}
+                      className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none ${formErrors.property ? 'border-rose-500 focus:border-rose-500' : 'border-white/5 focus:border-[#E5B842]/40'}`}
                     />
+                    {formErrors.property && (
+                      <p className="text-[11px] text-rose-400 font-medium">{formErrors.property}</p>
+                    )}
                   </div>
                 </div>
 
@@ -190,32 +400,53 @@ export default function LocatairesPage() {
                     <input 
                       type="number" 
                       placeholder="150000" 
-                      value={newLocRent}
-                      onChange={(e) => setNewLocRent(e.target.value)}
-                      className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-[#E5B842]/40"
+                      value={formData.rentVal}
+                      onChange={(e) => {
+                        setFormData({ ...formData, rentVal: e.target.value });
+                        if (formErrors.rentVal) setFormErrors({ ...formErrors, rentVal: undefined });
+                      }}
+                      className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none ${formErrors.rentVal ? 'border-rose-500 focus:border-rose-500' : 'border-white/5 focus:border-[#E5B842]/40'}`}
                     />
+                    {formErrors.rentVal && (
+                      <p className="text-[11px] text-rose-400 font-medium">{formErrors.rentVal}</p>
+                    )}
                   </div>
+
                   <div className="space-y-1.5">
-                    <label className="text-xs text-neutral-400 font-medium">Téléphone</label>
-                    <input 
-                      type="text" 
-                      placeholder="+221 77 123 45 67" 
-                      value={newLocPhone}
-                      onChange={(e) => setNewLocPhone(e.target.value)}
-                      className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-[#E5B842]/40"
-                    />
+                    <label className="text-xs text-neutral-400 font-medium">Téléphone (Unique) *</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="+221 77 123 45 67" 
+                        value={formData.phone}
+                        onChange={(e) => {
+                          setFormData({ ...formData, phone: e.target.value });
+                          if (formErrors.phone) setFormErrors({ ...formErrors, phone: undefined });
+                        }}
+                        className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none ${formErrors.phone ? 'border-rose-500 focus:border-rose-500' : 'border-white/5 focus:border-[#E5B842]/40'}`}
+                      />
+                    </div>
+                    {formErrors.phone && (
+                      <p className="text-[11px] text-rose-400 font-medium">{formErrors.phone}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-neutral-400 font-medium">Adresse email</label>
+                  <label className="text-xs text-neutral-400 font-medium">Adresse email (Unique) *</label>
                   <input 
                     type="email" 
                     placeholder="moussa@email.sn" 
-                    value={newLocEmail}
-                    onChange={(e) => setNewLocEmail(e.target.value)}
-                    className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-[#E5B842]/40"
+                    value={formData.email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      if (formErrors.email) setFormErrors({ ...formErrors, email: undefined });
+                    }}
+                    className={`w-full bg-black/40 border rounded-lg px-3 py-2 text-sm text-neutral-200 focus:outline-none ${formErrors.email ? 'border-rose-500 focus:border-rose-500' : 'border-white/5 focus:border-[#E5B842]/40'}`}
                   />
+                  {formErrors.email && (
+                    <p className="text-[11px] text-rose-400 font-medium">{formErrors.email}</p>
+                  )}
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t border-white/5 mt-4">
@@ -223,12 +454,12 @@ export default function LocatairesPage() {
                     type="button" 
                     variant="outline" 
                     className="bg-black/20 border-white/5 hover:bg-neutral-800 text-neutral-300"
-                    onClick={() => setIsAdding(false)}
+                    onClick={() => setIsModalOpen(false)}
                   >
                     Annuler
                   </Button>
                   <Button type="submit" className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-semibold">
-                    Ajouter le locataire
+                    {editingLocataire ? 'Enregistrer les modifications' : 'Ajouter le locataire'}
                   </Button>
                 </div>
               </form>
@@ -239,67 +470,67 @@ export default function LocatairesPage() {
 
       {/* Main card panel */}
       <Card className="bg-[#121318] border-white/5 text-white">
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-6">
-          <div className="flex items-center gap-4">
-            <CardTitle className="text-lg font-bold">Portefeuille locatif</CardTitle>
-            
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/5 text-xs text-neutral-400">
-              <button 
-                onClick={() => setViewMode('liste')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${viewMode === 'liste' ? 'bg-[#E5B842] text-black font-semibold' : 'hover:text-white'}`}
-              >
-                <List className="h-3.5 w-3.5" /> Liste
-              </button>
-              <button 
-                onClick={() => setViewMode('cartes')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${viewMode === 'cartes' ? 'bg-[#E5B842] text-black font-semibold' : 'hover:text-white'}`}
-              >
-                <Grid className="h-3.5 w-3.5" /> Cartes
-              </button>
-            </div>
-          </div>
-
-          {/* Filtering and search inputs */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
+          <CardTitle className="text-lg font-bold">Portefeuille des locataires</CardTitle>
+          <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
               <input 
                 type="text"
-                placeholder="Rechercher locataire..."
+                placeholder="Rechercher nom, bien, tél..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 rounded-lg bg-black/40 border border-white/5 text-sm text-neutral-300 placeholder-neutral-500 focus:outline-none focus:border-[#E5B842]/40"
               />
             </div>
 
-            {/* Status Select */}
-            <div className="relative w-full sm:w-auto">
+            {/* Filter Status */}
+            <div className="relative">
               <select 
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full appearance-none bg-black/40 border border-white/5 rounded-lg px-4 py-2 pr-10 text-sm text-neutral-300 focus:outline-none focus:border-[#E5B842]/40 cursor-pointer"
+                className="appearance-none pl-3 pr-8 py-2 rounded-lg bg-black/40 border border-white/5 text-sm text-neutral-300 focus:outline-none focus:border-[#E5B842]/40 cursor-pointer"
               >
                 <option value="all">Tous les statuts</option>
                 <option value="paid">Payé</option>
+                <option value="pending">En attente</option>
                 <option value="late">En retard</option>
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none" />
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center rounded-lg bg-black/40 border border-white/5 p-1">
+              <button 
+                onClick={() => setViewMode('liste')}
+                className={`p-1.5 rounded-md ${viewMode === 'liste' ? 'bg-[#E5B842] text-black font-semibold' : 'text-neutral-400 hover:text-white'}`}
+                title="Vue Liste"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button 
+                onClick={() => setViewMode('cartes')}
+                className={`p-1.5 rounded-md ${viewMode === 'cartes' ? 'bg-[#E5B842] text-black font-semibold' : 'text-neutral-400 hover:text-white'}`}
+                title="Vue Cartes"
+              >
+                <Grid className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </CardHeader>
 
         <CardContent>
           {viewMode === 'liste' ? (
-            /* Table list mode */
+            /* Table View */
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-white/5 text-neutral-400 font-medium">
                     <th className="pb-3 text-xs uppercase tracking-wider">Locataire</th>
                     <th className="pb-3 text-xs uppercase tracking-wider">Logement</th>
-                    <th className="pb-3 text-xs uppercase tracking-wider">Loyer</th>
+                    <th className="pb-3 text-xs uppercase tracking-wider">Ajouté le</th>
+                    <th className="pb-3 text-xs uppercase tracking-wider">Loyer mensuel</th>
                     <th className="pb-3 text-xs uppercase tracking-wider">Statut</th>
                     <th className="pb-3 text-right text-xs uppercase tracking-wider">Actions</th>
                   </tr>
@@ -307,7 +538,7 @@ export default function LocatairesPage() {
                 <tbody className="divide-y divide-white/5">
                   {paginatedLocataires.length > 0 ? (
                     paginatedLocataires.map((loc) => (
-                      <tr key={loc.id} className="group hover:bg-white/[0.01]">
+                      <tr key={loc.id} className="group hover:bg-white/[0.02] transition-colors">
                         <td className="py-4">
                           <div>
                             <p className="font-semibold text-white text-base leading-snug">{loc.name}</p>
@@ -317,13 +548,25 @@ export default function LocatairesPage() {
                           </div>
                         </td>
                         <td className="py-4 text-neutral-300 text-sm">{loc.property}</td>
-                        <td className="py-4 font-mono font-semibold text-neutral-300 text-sm">{loc.rentVal.toLocaleString()} F</td>
                         <td className="py-4">
-                          {loc.status === 'paid' ? (
+                          <div className="flex items-center gap-1.5 text-xs text-neutral-300">
+                            <Clock className="h-3.5 w-3.5 text-[#E5B842]" />
+                            <span>{loc.createdAt || '12 Août 2026 à 09:15'}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 font-mono font-semibold text-neutral-200 text-sm">{loc.rentVal.toLocaleString()} F</td>
+                        <td className="py-4">
+                          {loc.status === 'paid' && (
                             <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
                               Payé
                             </span>
-                          ) : (
+                          )}
+                          {loc.status === 'pending' && (
+                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20">
+                              En attente
+                            </span>
+                          )}
+                          {loc.status === 'late' && (
                             <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-semibold text-rose-400 ring-1 ring-inset ring-rose-500/20">
                               En retard - {loc.delayDays} j
                             </span>
@@ -332,47 +575,48 @@ export default function LocatairesPage() {
                         <td className="py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {loc.status === 'paid' ? (
-                              <>
-                                <button 
-                                  onClick={() => handleAction('Annulation', loc.name)}
-                                  className="px-3 py-1 rounded bg-rose-950/20 border border-rose-500/20 text-xs font-medium text-rose-400 hover:bg-rose-950/40 transition-colors"
-                                >
-                                  Annuler
-                                </button>
-                                <button 
-                                  onClick={() => handleAction('Édition Quittance', loc.name)}
-                                  className="flex items-center gap-1 px-3 py-1 rounded bg-[#E5B842]/10 border border-[#E5B842]/20 text-xs font-medium text-[#E5B842] hover:bg-[#E5B842]/20 transition-colors"
-                                >
-                                  <FileText className="h-3 w-3" /> Quittance
-                                </button>
-                              </>
+                              <button 
+                                onClick={() => handleOpenQuittance(loc)}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#E5B842] hover:bg-[#cdaf35] text-xs font-bold text-black transition-all shadow-sm"
+                              >
+                                <FileText className="h-3.5 w-3.5" /> Quittance
+                              </button>
+                            ) : loc.status === 'pending' ? (
+                              <button 
+                                onClick={() => handleEncaisser(loc.id, loc.name)}
+                                className="px-3 py-1 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 hover:bg-emerald-950/40 transition-colors"
+                              >
+                                Encaisser
+                              </button>
                             ) : (
                               <>
                                 <button 
                                   onClick={() => handleEncaisser(loc.id, loc.name)}
-                                  className="px-3 py-1 rounded bg-emerald-950/20 border border-emerald-500/20 text-xs font-medium text-emerald-400 hover:bg-emerald-950/40 transition-colors"
+                                  className="px-3 py-1 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 hover:bg-emerald-950/40 transition-colors"
                                 >
                                   Encaisser
                                 </button>
                                 <button 
-                                  onClick={() => handleRelancer(loc.id, loc.name)}
-                                  className="flex items-center gap-1 px-3 py-1 rounded bg-neutral-800 border border-white/10 text-xs font-medium text-neutral-300 hover:bg-neutral-700 transition-colors"
+                                  onClick={() => handleRelancer(loc)}
+                                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-neutral-800 border border-white/10 text-xs font-medium text-neutral-300 hover:bg-neutral-700 transition-colors"
                                 >
                                   <Send className="h-3 w-3" /> Relancer
                                 </button>
                               </>
                             )}
                             <button 
-                              onClick={() => handleAction('Modification', loc.name)}
-                              className="flex items-center gap-1 px-3 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-xs font-medium text-amber-400 hover:bg-amber-500/20 transition-colors"
+                              onClick={() => handleOpenEdit(loc)}
+                              className="flex items-center gap-1 p-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+                              title="Modifier ce locataire"
                             >
-                              <Edit3 className="h-3 w-3" /> Modifier
+                              <Edit3 className="h-3.5 w-3.5" />
                             </button>
                             <button 
-                              onClick={() => handleDelete(loc.id, loc.name)}
-                              className="flex items-center gap-1 px-3 py-1 rounded bg-orange-500/10 border border-orange-500/20 text-xs font-medium text-orange-400 hover:bg-orange-500/20 transition-colors"
+                              onClick={() => setLocataireToDelete(loc)}
+                              className="flex items-center gap-1 p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs font-medium text-rose-400 hover:bg-rose-500/20 transition-colors"
+                              title="Supprimer ce locataire"
                             >
-                              <Trash2 className="h-3 w-3" /> Suppr.
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </td>
@@ -380,7 +624,7 @@ export default function LocatairesPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-neutral-500">
+                      <td colSpan={6} className="py-8 text-center text-neutral-500">
                         Aucun locataire trouvé.
                       </td>
                     </tr>
@@ -389,61 +633,65 @@ export default function LocatairesPage() {
               </table>
             </div>
           ) : (
-            /* Cards mode layout */
+            /* Card View */
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedLocataires.length > 0 ? (
                 paginatedLocataires.map((loc) => (
-                  <Card key={loc.id} className="bg-black/30 border-white/5 text-white flex flex-col justify-between">
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-base font-bold">{loc.name}</CardTitle>
-                          <CardDescription className="text-neutral-500 mt-1">{loc.email}</CardDescription>
-                        </div>
-                        {loc.status === 'paid' ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
-                            Payé
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-400 ring-1 ring-inset ring-rose-500/20">
-                            En retard - {loc.delayDays} j
-                          </span>
-                        )}
+                  <Card key={loc.id} className="bg-black/20 border-white/5 text-white">
+                    <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">{loc.name}</CardTitle>
+                        <CardDescription className="text-xs text-neutral-400 mt-0.5">{loc.property}</CardDescription>
                       </div>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                        loc.status === 'paid' 
+                          ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' 
+                          : loc.status === 'pending'
+                          ? 'bg-amber-500/10 text-[#E5B842] ring-[#E5B842]/20'
+                          : 'bg-rose-500/10 text-rose-400 ring-rose-500/20'
+                      }`}>
+                        {loc.status === 'paid' ? 'À jour' : loc.status === 'pending' ? 'En attente' : `Retard · ${loc.delayDays}j`}
+                      </span>
                     </CardHeader>
-                    <CardContent className="space-y-4 pt-2">
-                      <div className="grid grid-cols-2 gap-2 text-xs text-neutral-400 border-b border-white/5 pb-3">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wider text-neutral-500">Logement</p>
-                          <p className="font-medium text-neutral-200 mt-0.5">{loc.property}</p>
+                    <CardContent className="space-y-4 pt-1">
+                      <div className="space-y-1.5 text-xs text-neutral-300">
+                        <div className="flex items-center gap-2 text-neutral-400">
+                          <Phone className="h-3.5 w-3.5 text-neutral-500" />
+                          <span>{loc.phone}</span>
                         </div>
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wider text-neutral-500">Loyer</p>
-                          <p className="font-semibold text-neutral-200 mt-0.5">{loc.rentVal.toLocaleString()} F</p>
+                        <div className="flex items-center gap-2 text-neutral-400">
+                          <Mail className="h-3.5 w-3.5 text-neutral-500" />
+                          <span className="truncate">{loc.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-neutral-400 text-[11px] pt-0.5">
+                          <Clock className="h-3.5 w-3.5 text-[#E5B842]" />
+                          <span>Ajouté le {loc.createdAt || '12 Août 2026 à 09:15'}</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1 text-neutral-400">
-                          <Phone className="h-3.5 w-3.5" /> {loc.phone}
+
+                      <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                        <span className="text-xs text-neutral-400">Loyer mensuel</span>
+                        <span className="font-mono font-bold text-white text-base">
+                          {loc.rentVal.toLocaleString()} F
                         </span>
                       </div>
+
                       {/* Action buttons footer */}
-                      <div className="flex flex-wrap items-center justify-end gap-1.5 pt-2">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5 pt-2 border-t border-white/5">
                         {loc.status === 'paid' ? (
-                          <>
-                            <button 
-                              onClick={() => handleAction('Annulation', loc.name)}
-                              className="px-2 py-1 rounded bg-rose-950/20 border border-rose-500/20 text-[10px] font-medium text-rose-400 hover:bg-rose-950/40"
-                            >
-                              Annuler
-                            </button>
-                            <button 
-                              onClick={() => handleAction('Édition Quittance', loc.name)}
-                              className="flex items-center gap-1 px-2 py-1 rounded bg-[#E5B842]/10 border border-[#E5B842]/20 text-[10px] font-medium text-[#E5B842] hover:bg-[#E5B842]/20"
-                            >
-                              <FileText className="h-2.5 w-2.5" /> Quittance
-                            </button>
-                          </>
+                          <button 
+                            onClick={() => handleOpenQuittance(loc)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#E5B842] text-[10px] font-bold text-black hover:bg-[#cdaf35]"
+                          >
+                            <FileText className="h-3 w-3" /> Quittance
+                          </button>
+                        ) : loc.status === 'pending' ? (
+                          <button 
+                            onClick={() => handleEncaisser(loc.id, loc.name)}
+                            className="px-2 py-1 rounded bg-emerald-950/20 border border-emerald-500/20 text-[10px] font-medium text-emerald-400 hover:bg-emerald-950/40"
+                          >
+                            Encaisser
+                          </button>
                         ) : (
                           <>
                             <button 
@@ -453,7 +701,7 @@ export default function LocatairesPage() {
                               Encaisser
                             </button>
                             <button 
-                              onClick={() => handleRelancer(loc.id, loc.name)}
+                              onClick={() => handleRelancer(loc)}
                               className="flex items-center gap-1 px-2 py-1 rounded bg-neutral-800 border border-white/10 text-[10px] font-medium text-neutral-300 hover:bg-neutral-700"
                             >
                               <Send className="h-2.5 w-2.5" /> Relancer
@@ -461,16 +709,18 @@ export default function LocatairesPage() {
                           </>
                         )}
                         <button 
-                          onClick={() => handleAction('Modification', loc.name)}
-                          className="flex items-center gap-0.5 px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] font-medium text-amber-400 hover:bg-amber-500/20"
+                          onClick={() => handleOpenEdit(loc)}
+                          className="flex items-center gap-0.5 p-1 rounded bg-white/5 border border-white/10 text-[10px] font-medium text-neutral-300 hover:text-white hover:bg-white/10"
+                          title="Modifier"
                         >
-                          <Edit3 className="h-2.5 w-2.5" /> Modifier
+                          <Edit3 className="h-3 w-3" />
                         </button>
                         <button 
-                          onClick={() => handleDelete(loc.id, loc.name)}
-                          className="flex items-center gap-0.5 px-2 py-1 rounded bg-orange-500/10 border border-orange-500/20 text-[10px] font-medium text-orange-400 hover:bg-orange-500/20"
+                          onClick={() => setLocataireToDelete(loc)}
+                          className="flex items-center gap-0.5 p-1 rounded bg-rose-500/10 border border-rose-500/20 text-[10px] font-medium text-rose-400 hover:bg-rose-500/20"
+                          title="Supprimer"
                         >
-                          <Trash2 className="h-2.5 w-2.5" /> Suppr.
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </CardContent>
@@ -536,6 +786,83 @@ export default function LocatairesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Modal Popup */}
+      {locataireToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="fixed inset-0" 
+            onClick={() => setLocataireToDelete(null)} 
+          />
+          <Card className="relative z-10 w-full max-w-md bg-[#14151B] border border-rose-500/30 text-white shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <CardHeader className="flex flex-row items-start gap-3 pb-3 border-b border-white/5">
+              <div className="h-10 w-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-lg font-bold text-white">Supprimer le locataire ?</CardTitle>
+                <CardDescription className="text-neutral-400 text-xs mt-1">
+                  Cette action est irréversible et supprimera définitivement le locataire.
+                </CardDescription>
+              </div>
+              <button 
+                onClick={() => setLocataireToDelete(null)}
+                className="rounded-lg p-1 text-neutral-400 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Locataire :</span>
+                  <span className="font-semibold text-white">{locataireToDelete.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Logement :</span>
+                  <span className="text-neutral-300">{locataireToDelete.property}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Loyer mensuel :</span>
+                  <span className="font-mono text-[#E5B842] font-semibold">{locataireToDelete.rentVal.toLocaleString()} FCFA</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-400">Statut actuel :</span>
+                  <span className="font-medium text-neutral-300">
+                    {locataireToDelete.status === 'paid' ? 'Payé' : locataireToDelete.status === 'pending' ? 'En attente' : `En retard (${locataireToDelete.delayDays}j)`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLocataireToDelete(null)}
+                  className="bg-black/30 border-white/10 text-neutral-300 hover:bg-neutral-800 text-xs h-9 px-4"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  onClick={confirmDelete}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs h-9 px-4 shadow-md gap-1.5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Confirmer la suppression
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Official Quittance Modal */}
+      <QuittanceModal 
+        isOpen={isQuittanceOpen}
+        onClose={() => setIsQuittanceOpen(false)}
+        data={selectedQuittance}
+      />
     </div>
   );
 }

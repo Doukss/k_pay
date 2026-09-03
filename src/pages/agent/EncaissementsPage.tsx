@@ -5,16 +5,31 @@ import {
   FileText, 
   Search, 
   ChevronLeft, 
-  ChevronRight 
+  ChevronRight,
+  TrendingUp,
+  CreditCard,
+  Wallet,
+  CheckCircle2
 } from 'lucide-react';
 import { useAgencyStore } from '@/stores/agencyStore';
-import { toast } from 'sonner';
+import { QuittanceModal, type QuittanceData } from '@/shared/components/QuittanceModal';
 
 export default function EncaissementsPage() {
   const { encaissements } = useAgencyStore();
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  // Quittance Modal State
+  const [selectedQuittance, setSelectedQuittance] = useState<QuittanceData | null>(null);
+  const [isQuittanceOpen, setIsQuittanceOpen] = useState(false);
+
+  // Top Metrics
+  const totalEncaiss = useMemo(() => {
+    return encaissements.reduce((sum, e) => sum + e.amount, 0);
+  }, [encaissements]);
+
+  const avgRent = encaissements.length > 0 ? Math.round(totalEncaiss / encaissements.length) : 0;
 
   // Filtered Encaissements
   const filteredEncaissements = useMemo(() => {
@@ -36,8 +51,17 @@ export default function EncaissementsPage() {
     return filteredEncaissements.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredEncaissements, currentPage]);
 
-  const handleShowQuittance = (tenant: string) => {
-    toast.info(`Affichage de la quittance pour ${tenant}`);
+  const handleShowQuittance = (tx: typeof encaissements[0]) => {
+    setSelectedQuittance({
+      tenantName: tx.tenant,
+      property: tx.property,
+      amount: tx.amount,
+      month: 'Août 2026',
+      paymentDate: tx.date,
+      paymentMethod: 'Wave Mobile Money',
+      reference: tx.reference,
+    });
+    setIsQuittanceOpen(true);
   };
 
   return (
@@ -55,8 +79,51 @@ export default function EncaissementsPage() {
             Suivi des Encaissements
           </h1>
           <p className="text-sm text-neutral-400 mt-1">
-            Consultez la liste des loyers réglés pour le mois en cours.
+            Consultez en temps réel les loyers perçus et éditez les quittances certifiées.
           </p>
+        </div>
+      </div>
+
+      {/* KPI Highlights */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">Total Perçu (Août)</p>
+            <p className="text-2xl font-bold font-mono text-emerald-400 mt-1">{totalEncaiss.toLocaleString()} F</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <TrendingUp className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">Transactions Validées</p>
+            <p className="text-2xl font-bold font-mono text-white mt-1">{encaissements.length}</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">Panier Moyen</p>
+            <p className="text-2xl font-bold font-mono text-neutral-200 mt-1">{avgRent.toLocaleString()} F</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-neutral-800 border border-white/10 flex items-center justify-center text-neutral-300">
+            <CreditCard className="h-5 w-5" />
+          </div>
+        </div>
+
+        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-neutral-400 font-medium">Canal Principal</p>
+            <p className="text-xl font-bold text-[#E5B842] mt-1">Wave & OM</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center text-[#E5B842]">
+            <Wallet className="h-5 w-5" />
+          </div>
         </div>
       </div>
 
@@ -85,13 +152,14 @@ export default function EncaissementsPage() {
                   <th className="pb-3 text-xs uppercase tracking-wider">Locataire</th>
                   <th className="pb-3 text-xs uppercase tracking-wider">Logement</th>
                   <th className="pb-3 text-xs uppercase tracking-wider">Montant perçu</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Date & Référence</th>
                   <th className="pb-3 text-right text-xs uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {paginatedEncaissements.length > 0 ? (
                   paginatedEncaissements.map((tx) => (
-                    <tr key={tx.id} className="group hover:bg-white/[0.01]">
+                    <tr key={tx.id} className="group hover:bg-white/[0.02] transition-colors">
                       <td className="py-4">
                         <div>
                           <p className="font-semibold text-white text-base leading-snug">{tx.tenant}</p>
@@ -99,11 +167,15 @@ export default function EncaissementsPage() {
                         </div>
                       </td>
                       <td className="py-4 text-neutral-300 text-sm">{tx.property}</td>
-                      <td className="py-4 font-mono font-semibold text-emerald-400 text-sm">{tx.amount.toLocaleString()} F</td>
+                      <td className="py-4 font-mono font-semibold text-emerald-400 text-base">{tx.amount.toLocaleString()} F</td>
+                      <td className="py-4 text-neutral-400 text-xs font-mono">
+                        <p className="text-white">{tx.date}</p>
+                        <p className="text-neutral-500 text-[11px]">{tx.reference}</p>
+                      </td>
                       <td className="py-4 text-right">
                         <Button 
-                          onClick={() => handleShowQuittance(tx.tenant)}
-                          className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-semibold text-xs gap-1.5 px-3 py-1 h-8 rounded-lg"
+                          onClick={() => handleShowQuittance(tx)}
+                          className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-bold text-xs gap-1.5 px-3 py-1 h-8 rounded-lg shadow-sm"
                         >
                           <FileText className="h-3.5 w-3.5" /> Voir la quittance
                         </Button>
@@ -112,7 +184,7 @@ export default function EncaissementsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-neutral-500">
+                    <td colSpan={5} className="py-8 text-center text-neutral-500">
                       Aucun encaissement trouvé.
                     </td>
                   </tr>
@@ -173,6 +245,13 @@ export default function EncaissementsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Official Quittance Modal */}
+      <QuittanceModal 
+        isOpen={isQuittanceOpen}
+        onClose={() => setIsQuittanceOpen(false)}
+        data={selectedQuittance}
+      />
     </div>
   );
 }
