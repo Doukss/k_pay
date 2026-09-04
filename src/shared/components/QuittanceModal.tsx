@@ -53,7 +53,7 @@ export function QuittanceModal({ isOpen, onClose, data }: QuittanceModalProps) {
 
       <div className="relative z-10 w-full max-w-2xl bg-[#0F0F12] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Modal Topbar Actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/30">
+        <div className="no-print flex items-center justify-between px-6 py-4 border-b border-white/10 bg-black/30">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[#E5B842]">
@@ -94,7 +94,7 @@ export function QuittanceModal({ isOpen, onClose, data }: QuittanceModalProps) {
         </div>
 
         {/* Modal Body - Official Receipt Preview */}
-        <div className="flex-1 overflow-y-auto p-8 bg-neutral-950 text-neutral-100 font-sans space-y-6">
+        <div className="printable-quittance flex-1 overflow-y-auto p-8 bg-neutral-950 text-neutral-100 font-sans space-y-6">
           {/* Header of Receipt */}
           <div className="border border-white/10 bg-[#14151B] p-6 rounded-xl relative overflow-hidden">
             {/* Watermark Stamp */}
@@ -201,7 +201,7 @@ export function QuittanceModal({ isOpen, onClose, data }: QuittanceModalProps) {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 bg-black/40 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
+        <div className="no-print px-6 py-3 bg-black/40 border-t border-white/5 flex items-center justify-between text-xs text-neutral-400">
           <span>KeurGui Pay · Plateforme certifiée de gestion locative</span>
           <Button variant="ghost" size="sm" onClick={onClose} className="text-neutral-400 hover:text-white h-7">
             Fermer

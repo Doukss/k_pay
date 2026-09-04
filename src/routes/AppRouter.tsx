@@ -1,8 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from '@/pages/landing/LandingPage';
-import LoginPage from '@/pages/auth/LoginPage';
-import RegisterPage from '@/pages/auth/RegisterPage';
-import PaiementPage from '@/pages/locataire/PaiementPage';
+import { LandingPage } from '@/features/landing';
+import { LoginPage, RegisterPage } from '@/features/auth';
+import { PaiementPage } from '@/features/paiement-mobile';
 import { AgentRoutes } from '@/routes/AgentRoutes';
 import { AdminRoutes } from '@/routes/AdminRoutes';
 

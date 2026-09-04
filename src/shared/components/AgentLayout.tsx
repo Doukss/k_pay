@@ -262,32 +262,57 @@ export function AgentLayout({ children }: AgentLayoutProps) {
             <div className="relative">
               <button
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative p-2 rounded-lg bg-black/40 border border-white/5 text-neutral-400 hover:text-white hover:border-white/10 transition-colors"
+                className="relative p-2 rounded-lg bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/10 transition-colors"
                 title="Notifications"
               >
                 <Bell className="h-4 w-4" />
-                <span className="absolute 1 top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#E5B842] ring-2 ring-[#0E0F14]" />
+                {recentActivities.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#E5B842] text-[10px] font-bold text-black flex items-center justify-center ring-2 ring-white dark:ring-[#0E0F14]">
+                    {recentActivities.length}
+                  </span>
+                )}
               </button>
 
               {/* Notifications Dropdown */}
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-xl bg-[#14151B] border border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Activité Récente</span>
-                    <span className="text-[10px] text-[#E5B842] font-semibold cursor-pointer hover:underline" onClick={() => setIsNotificationsOpen(false)}>
+                <div className="absolute right-0 mt-2 w-80 rounded-xl bg-white dark:bg-[#14151B] border border-slate-200 dark:border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150 text-slate-800 dark:text-white">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold uppercase tracking-wider">Alertes &amp; Activités</span>
+                      <span className="text-[10px] bg-[#E5B842]/20 text-[#E5B842] font-semibold px-1.5 py-0.5 rounded-full font-mono">
+                        {recentActivities.length}
+                      </span>
+                    </div>
+                    <button 
+                      className="text-[11px] text-slate-400 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                      onClick={() => setIsNotificationsOpen(false)}
+                    >
                       Fermer
-                    </span>
+                    </button>
                   </div>
                   <div className="space-y-2 mt-2 max-h-64 overflow-y-auto">
-                    {recentActivities.map((act) => (
-                      <div key={act.id} className="p-2 rounded-lg bg-black/30 border border-white/5 text-xs space-y-0.5">
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold text-white">{act.title}</p>
-                          <span className="text-[10px] text-neutral-500">{act.time}</span>
+                    {recentActivities.length > 0 ? (
+                      recentActivities.map((act) => (
+                        <div key={act.id} className="p-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-slate-100 dark:border-white/5 text-xs space-y-0.5 hover:border-slate-300 dark:hover:border-white/10 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold flex items-center gap-1.5">
+                              {act.type === 'paiement' ? (
+                                <CreditCard className="h-3 w-3 text-emerald-500" />
+                              ) : act.type === 'relance' ? (
+                                <Send className="h-3 w-3 text-sky-500" />
+                              ) : (
+                                <Users className="h-3 w-3 text-[#E5B842]" />
+                              )}
+                              {act.title}
+                            </span>
+                            <span className="text-[10px] text-slate-400 dark:text-neutral-500 font-mono">{act.time}</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-neutral-400 text-[11px] pl-4.5">{act.description}</p>
                         </div>
-                        <p className="text-neutral-400 text-[11px]">{act.description}</p>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-center text-xs text-slate-400 dark:text-neutral-500 py-4">Aucune notification</p>
+                    )}
                   </div>
                 </div>
               )}

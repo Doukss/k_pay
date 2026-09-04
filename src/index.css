@@ -265,3 +265,63 @@ html:not(.dark) .bg-amber-500\/10,
 html:not(.dark) .bg-\[\#E5B842\]\/10 {
   background-color: #fef3c7 !important;
 }
+
+/* ========================================================
+   PRINT STYLES FOR OFFICIAL QUITTANCE CERTIFICATE
+   ======================================================== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+
+  /* Hide everything except quittance */
+  body > * {
+    visibility: hidden;
+  }
+
+  .printable-quittance,
+  .printable-quittance * {
+    visibility: visible !important;
+  }
+
+  .printable-quittance {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 24px !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  .printable-quittance .text-white {
+    color: #111827 !important;
+  }
+
+  .printable-quittance .text-neutral-200,
+  .printable-quittance .text-neutral-300,
+  .printable-quittance .text-neutral-400,
+  .printable-quittance .text-neutral-500 {
+    color: #4b5563 !important;
+  }
+
+  .printable-quittance div {
+    background-color: #f9fafb !important;
+    border-color: #e5e7eb !important;
+  }
+
+  .printable-quittance .border-white\/10,
+  .printable-quittance .border-white\/5 {
+    border-color: #e5e7eb !important;
+  }
+}

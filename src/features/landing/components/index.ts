@@ -1,0 +1,11 @@
+export { Header } from './Header';
+export { Hero } from './Hero';
+export { SocialProof } from './SocialProof';
+export { ProblemStatement } from './ProblemStatement';
+export { HowItWorks } from './HowItWorks';
+export { FeaturesByRole } from './FeaturesByRole';
+export { MobileMoneyShowcase } from './MobileMoneyShowcase';
+export { PricingSection } from './PricingSection';
+export { UseCaseSection } from './UseCaseSection';
+export { FinalCta } from './FinalCta';
+export { Footer } from './Footer';

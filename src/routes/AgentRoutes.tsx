@@ -1,9 +1,9 @@
 import { Routes, Route } from 'react-router-dom';
-import DashboardPage from '@/pages/agent/DashboardPage';
-import LocatairesPage from '@/pages/agent/LocatairesPage';
-import RelancesPage from '@/pages/agent/RelancesPage';
-import EncaissementsPage from '@/pages/agent/EncaissementsPage';
-import ParametresPage from '@/pages/agent/ParametresPage';
+import { DashboardPage } from '@/features/agent-dashboard';
+import { LocatairesPage } from '@/features/locataires';
+import { EncaissementsPage } from '@/features/encaissements';
+import { RelancesPage } from '@/features/relances';
+import { ParametresPage } from '@/features/parametres';
 import { AgentLayout } from '@/shared/components/AgentLayout';
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 

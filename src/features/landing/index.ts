@@ -1,11 +1,2 @@
-export { Header } from './components/Header';
-export { Hero } from './components/Hero';
-export { SocialProof } from './components/SocialProof';
-export { ProblemStatement } from './components/ProblemStatement';
-export { HowItWorks } from './components/HowItWorks';
-export { FeaturesByRole } from './components/FeaturesByRole';
-export { MobileMoneyShowcase } from './components/MobileMoneyShowcase';
-export { PricingSection } from './components/PricingSection';
-export { UseCaseSection } from './components/UseCaseSection';
-export { FinalCta } from './components/FinalCta';
-export { Footer } from './components/Footer';
+export * from './components';
+export { default as LandingPage } from './pages/LandingPage';
