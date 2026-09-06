@@ -8,7 +8,9 @@ import {
   CheckCircle2, 
   TrendingUp, 
   DollarSign, 
-  Plus
+  Plus,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { AgencyDetailModal } from '../components/AgencyDetailModal';
 import type { AgencyDetail } from '../types';
@@ -162,6 +164,91 @@ const initialAgencesData: AgencyDetail[] = [
       { id: 501, name: 'Moussa Cissé', property: 'Appartement Cité Ouvrière', rentVal: 75000, phone: '+221 77 666 77 88', status: 'late' },
     ],
   },
+  {
+    id: 6,
+    name: 'Saly Résidences & Villas',
+    shortName: 'SR',
+    responsable: 'Aminata Ba',
+    email: 'contact@saly-residences.sn',
+    phone: '+221 77 654 32 10',
+    city: 'Mbour (Saly Portudal)',
+    address: 'Route Touristique de Saly, Mbour',
+    ninea: '00681928374-6F',
+    plan: 'Plan Pro',
+    status: 'active',
+    locataires: 64,
+    quota: 100,
+    volumeMensuel: 7800000,
+    commissionRate: 1.5,
+    commissionsTotal: 117000,
+    tauxRecouvrement: 95.8,
+    dateAdhesion: '04 Juin 2026',
+    gateways: {
+      wave: { enabled: true, merchantId: 'WV-SLY-552', status: 'operational' },
+      orangeMoney: { enabled: true, merchantNumber: '+221 77 654 32 10', status: 'operational' },
+      whatsapp: { enabled: true, phoneNumber: '+221 77 654 32 10', status: 'operational' },
+    },
+    locatairesList: [
+      { id: 601, name: 'François Leroy', property: 'Villa Cocotier Saly', rentVal: 650000, phone: '+221 77 222 11 00', status: 'paid' },
+      { id: 602, name: 'Koumba Cissé', property: 'Bungalow Plage', rentVal: 400000, phone: '+221 78 333 44 55', status: 'paid' },
+    ],
+  },
+  {
+    id: 7,
+    name: 'Casamance Immobilier',
+    shortName: 'CI',
+    responsable: 'Seydou Sané',
+    email: 'info@casamance-immo.sn',
+    phone: '+221 78 432 10 98',
+    city: 'Ziguinchor (Escale)',
+    address: 'Rue du Général de Gaulle, Ziguinchor',
+    ninea: '00293847102-7G',
+    plan: 'Gratuit',
+    status: 'active',
+    locataires: 3,
+    quota: 5,
+    volumeMensuel: 210000,
+    commissionRate: 2.0,
+    commissionsTotal: 4200,
+    tauxRecouvrement: 92.0,
+    dateAdhesion: '22 Juin 2026',
+    gateways: {
+      wave: { enabled: true, merchantId: 'WV-ZIG-109', status: 'operational' },
+      orangeMoney: { enabled: true, merchantNumber: '+221 78 432 10 98', status: 'operational' },
+      whatsapp: { enabled: true, phoneNumber: '+221 78 432 10 98', status: 'operational' },
+    },
+    locatairesList: [
+      { id: 701, name: 'Lamine Mané', property: 'Maison Escale', rentVal: 90000, phone: '+221 77 999 88 77', status: 'paid' },
+    ],
+  },
+  {
+    id: 8,
+    name: 'Touba Invest Immo',
+    shortName: 'TI',
+    responsable: 'Serigne Mbacké',
+    email: 'contact@touba-invest.sn',
+    phone: '+221 77 123 99 88',
+    city: 'Touba / Mbacké',
+    address: 'Boulevard 28, Touba',
+    ninea: '00918273645-8H',
+    plan: 'Entreprise',
+    status: 'active',
+    locataires: 120,
+    quota: 500,
+    volumeMensuel: 14500000,
+    commissionRate: 1.0,
+    commissionsTotal: 145000,
+    tauxRecouvrement: 96.5,
+    dateAdhesion: '05 Juillet 2026',
+    gateways: {
+      wave: { enabled: true, merchantId: 'WV-TBA-901', status: 'operational' },
+      orangeMoney: { enabled: true, merchantNumber: '+221 77 123 99 88', status: 'operational' },
+      whatsapp: { enabled: true, phoneNumber: '+221 77 123 99 88', status: 'operational' },
+    },
+    locatairesList: [
+      { id: 801, name: 'Modou Lo', property: 'Immeuble Darou Khoudoss', rentVal: 350000, phone: '+221 76 111 44 22', status: 'paid' },
+    ],
+  },
 ];
 
 export default function TenantsPage() {
@@ -170,6 +257,10 @@ export default function TenantsPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>('all');
   const [selectedAgency, setSelectedAgency] = useState<AgencyDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Pagination (5 items per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Platform Network Calculations
   const totalAgences = agences.length;
@@ -195,6 +286,23 @@ export default function TenantsPage() {
       return matchesSearch && matchesPlan;
     });
   }, [agences, search, selectedPlan]);
+
+  // Paginated Slices
+  const totalPages = Math.ceil(filteredAgences.length / itemsPerPage) || 1;
+  const paginatedAgences = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredAgences.slice(start, start + itemsPerPage);
+  }, [filteredAgences, currentPage, itemsPerPage]);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
+  const handlePlanChange = (plan: string) => {
+    setSelectedPlan(plan);
+    setCurrentPage(1);
+  };
 
   const handleOpenDetail = (agency: AgencyDetail) => {
     setSelectedAgency(agency);
@@ -237,7 +345,7 @@ export default function TenantsPage() {
             Gestion des Agences Partenaires
           </h1>
           <p className="text-sm text-neutral-400 mt-1">
-            Supervisez le parc d'agences clientes, auditez leurs locataires et gérez leurs statuts.
+            Supervisez le parc d'agences clientes, leurs responsables et accédez aux audits complets.
           </p>
         </div>
 
@@ -294,13 +402,13 @@ export default function TenantsPage() {
         </div>
       </div>
 
-      {/* Main Table Card */}
+      {/* Main Table Card (Streamlined & Clean) */}
       <Card className="bg-[#121318] border-white/5 text-white shadow-xl">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
           <div>
             <CardTitle className="text-lg font-bold">Portefeuille des Agences Immobilières</CardTitle>
             <CardDescription className="text-neutral-400 text-xs mt-0.5">
-              Cliquez sur « Détails » pour inspecter les locataires et passerelles de chaque agence.
+              Vue synthétique épurée. Les volumes financiers, NINEA et passerelles sont consultables dans « Détails ».
             </CardDescription>
           </div>
 
@@ -308,31 +416,31 @@ export default function TenantsPage() {
             {/* Filter Tabs */}
             <div className="flex items-center rounded-lg bg-black/40 border border-white/5 p-1 text-xs">
               <button
-                onClick={() => setSelectedPlan('all')}
+                onClick={() => handlePlanChange('all')}
                 className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'all' ? 'bg-rose-600 text-white font-semibold' : 'text-neutral-400 hover:text-white'}`}
               >
                 Toutes ({totalAgences})
               </button>
               <button
-                onClick={() => setSelectedPlan('Plan Pro')}
+                onClick={() => handlePlanChange('Plan Pro')}
                 className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'Plan Pro' ? 'bg-[#E5B842] text-black font-semibold' : 'text-neutral-400 hover:text-white'}`}
               >
                 Plan Pro
               </button>
               <button
-                onClick={() => setSelectedPlan('Entreprise')}
+                onClick={() => handlePlanChange('Entreprise')}
                 className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'Entreprise' ? 'bg-rose-600 text-white font-semibold' : 'text-neutral-400 hover:text-white'}`}
               >
                 Entreprise
               </button>
               <button
-                onClick={() => setSelectedPlan('Gratuit')}
+                onClick={() => handlePlanChange('Gratuit')}
                 className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'Gratuit' ? 'bg-neutral-700 text-white font-semibold' : 'text-neutral-400 hover:text-white'}`}
               >
                 Gratuit
               </button>
               <button
-                onClick={() => setSelectedPlan('suspended')}
+                onClick={() => handlePlanChange('suspended')}
                 className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'suspended' ? 'bg-rose-950 text-rose-300 font-semibold' : 'text-neutral-400 hover:text-white'}`}
               >
                 Suspendues
@@ -346,125 +454,117 @@ export default function TenantsPage() {
                 type="text"
                 placeholder="Rechercher agence, gérant, ville..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full pl-9 pr-4 py-1.5 rounded-lg bg-black/40 border border-white/5 text-xs text-neutral-300 placeholder-neutral-500 focus:outline-none focus:border-rose-500/40"
               />
             </div>
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-white/5 text-neutral-400 font-medium">
-                  <th className="pb-3 text-xs uppercase tracking-wider">Agence & Siège</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Agence & Ville</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Responsable & Contact</th>
                   <th className="pb-3 text-xs uppercase tracking-wider">Formule</th>
-                  <th className="pb-3 text-xs uppercase tracking-wider">Quota Locataires</th>
-                  <th className="pb-3 text-xs uppercase tracking-wider">Volume Mensuel</th>
-                  <th className="pb-3 text-xs uppercase tracking-wider">Recouvrement</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Locataires</th>
                   <th className="pb-3 text-xs uppercase tracking-wider">Statut</th>
                   <th className="pb-3 text-right text-xs uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredAgences.length > 0 ? (
-                  filteredAgences.map((ag) => {
-                    const pct = Math.min(Math.round((ag.locataires / ag.quota) * 100), 100);
-                    return (
-                      <tr key={ag.id} className="hover:bg-white/[0.02] transition-colors group">
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/10 flex items-center justify-center font-bold text-xs text-rose-400 shrink-0 shadow-inner">
-                              {ag.shortName}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-white text-base leading-snug group-hover:text-rose-400 transition-colors">
-                                {ag.name}
-                              </p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
-                                {ag.responsable} <span className="opacity-40">·</span> {ag.city}
-                              </p>
-                            </div>
+                {paginatedAgences.length > 0 ? (
+                  paginatedAgences.map((ag) => (
+                    <tr key={ag.id} className="hover:bg-white/[0.02] transition-colors group">
+                      {/* Agence & Localisation */}
+                      <td className="py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-neutral-800 to-neutral-900 border border-white/10 flex items-center justify-center font-bold text-xs text-rose-400 shrink-0 shadow-inner">
+                            {ag.shortName}
                           </div>
-                        </td>
+                          <div>
+                            <p className="font-semibold text-white text-sm leading-snug group-hover:text-rose-400 transition-colors">
+                              {ag.name}
+                            </p>
+                            <p className="text-xs text-neutral-500 mt-0.5">
+                              {ag.city}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
 
-                        <td className="py-4 text-sm">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            ag.plan === 'Entreprise' ? 'bg-rose-500/10 text-rose-400 ring-1 ring-inset ring-rose-500/20' :
-                            ag.plan === 'Plan Pro' ? 'bg-[#E5B842]/10 text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20' :
-                            'bg-neutral-500/10 text-neutral-400 ring-1 ring-inset ring-neutral-500/20'
-                          }`}>
-                            {ag.plan}
+                      {/* Responsable & Contact */}
+                      <td className="py-3.5">
+                        <div>
+                          <p className="font-medium text-neutral-200 text-xs">{ag.responsable}</p>
+                          <p className="text-[11px] font-mono text-neutral-500 mt-0.5">{ag.phone}</p>
+                        </div>
+                      </td>
+
+                      {/* Formule */}
+                      <td className="py-3.5 text-xs">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                          ag.plan === 'Entreprise' ? 'bg-rose-500/10 text-rose-400 ring-1 ring-inset ring-rose-500/20' :
+                          ag.plan === 'Plan Pro' ? 'bg-[#E5B842]/10 text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20' :
+                          'bg-neutral-500/10 text-neutral-400 ring-1 ring-inset ring-neutral-500/20'
+                        }`}>
+                          {ag.plan}
+                        </span>
+                      </td>
+
+                      {/* Locataires */}
+                      <td className="py-3.5 text-xs font-mono">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-black/40 border border-white/5 font-semibold text-white">
+                          {ag.locataires} <span className="text-neutral-500 font-normal ml-1">actifs</span>
+                        </span>
+                      </td>
+
+                      {/* Statut */}
+                      <td className="py-3.5 text-xs">
+                        {ag.status === 'active' ? (
+                          <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Actif
                           </span>
-                        </td>
-
-                        <td className="py-4 text-xs font-mono">
-                          <div className="flex items-center justify-between text-neutral-300 mb-1 max-w-[120px]">
-                            <span className="font-bold text-white">{ag.locataires}</span>
-                            <span className="text-neutral-500">/ {ag.quota}</span>
-                          </div>
-                          <div className="w-28 bg-white/5 h-1.5 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${pct > 90 ? 'bg-rose-500' : 'bg-[#E5B842]'}`} 
-                              style={{ width: `${pct}%` }} 
-                            />
-                          </div>
-                        </td>
-
-                        <td className="py-4 text-sm text-neutral-200 font-bold font-mono">
-                          {ag.volumeMensuel.toLocaleString()} F
-                        </td>
-
-                        <td className="py-4 text-sm">
-                          <span className="font-mono font-semibold text-emerald-400">
-                            {ag.tauxRecouvrement}%
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-rose-400 font-semibold">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Suspendu
                           </span>
-                        </td>
+                        )}
+                      </td>
 
-                        <td className="py-4 text-sm">
-                          {ag.status === 'active' ? (
-                            <span className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-semibold">
-                              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Actif
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-rose-400 text-xs font-semibold">
-                              <span className="h-2 w-2 rounded-full bg-rose-500" /> Suspendu
-                            </span>
-                          )}
-                        </td>
+                      {/* Actions */}
+                      <td className="py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Inspect Agency Details Button */}
+                          <Button 
+                            onClick={() => handleOpenDetail(ag)}
+                            size="sm" 
+                            className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-bold text-xs gap-1.5 h-8 px-3 rounded-lg shadow-sm"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Détails
+                          </Button>
 
-                        <td className="py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Inspect Agency Details Button */}
-                            <Button 
-                              onClick={() => handleOpenDetail(ag)}
-                              size="sm" 
-                              className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-bold text-xs gap-1.5 h-8 px-3 rounded-lg shadow-sm"
-                            >
-                              <Eye className="h-3.5 w-3.5" /> Détails
-                            </Button>
-
-                            {/* Toggle Suspend Action */}
-                            <Button 
-                              onClick={() => handleToggleStatus(ag.id)}
-                              variant="outline"
-                              size="sm"
-                              className={ag.status === 'active' 
-                                ? "bg-rose-950/20 border-rose-500/20 text-rose-400 hover:bg-rose-950/40 text-xs h-8 px-2.5"
-                                : "bg-emerald-950/20 border-emerald-500/20 text-emerald-400 hover:bg-emerald-950/40 text-xs h-8 px-2.5"
-                              }
-                            >
-                              {ag.status === 'active' ? 'Suspendre' : 'Activer'}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                          {/* Toggle Suspend Action */}
+                          <Button 
+                            onClick={() => handleToggleStatus(ag.id)}
+                            variant="outline"
+                            size="sm"
+                            className={ag.status === 'active' 
+                              ? "bg-rose-950/20 border-rose-500/20 text-rose-400 hover:bg-rose-950/40 text-xs h-8 px-2.5"
+                              : "bg-emerald-950/20 border-emerald-500/20 text-emerald-400 hover:bg-emerald-950/40 text-xs h-8 px-2.5"
+                            }
+                          >
+                            {ag.status === 'active' ? 'Suspendre' : 'Activer'}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-neutral-500">
+                    <td colSpan={6} className="py-8 text-center text-neutral-500 text-xs">
                       Aucune agence trouvée avec ces critères.
                     </td>
                   </tr>
@@ -472,6 +572,57 @@ export default function TenantsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls (5 per page) */}
+          {filteredAgences.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-white/5 text-xs text-neutral-400">
+              <div>
+                Affichage de <span className="font-semibold text-white font-mono">{(currentPage - 1) * itemsPerPage + 1}</span> à{' '}
+                <span className="font-semibold text-white font-mono">
+                  {Math.min(currentPage * itemsPerPage, filteredAgences.length)}
+                </span>{' '}
+                sur <span className="font-semibold text-white font-mono">{filteredAgences.length}</span> agences
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="bg-black/40 border-white/10 text-neutral-300 hover:bg-neutral-800 text-xs h-8 px-2.5 disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Précédent
+                </Button>
+
+                <div className="flex items-center gap-1 mx-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`h-8 w-8 rounded-lg text-xs font-semibold font-mono transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-[#E5B842] text-black shadow-sm'
+                          : 'bg-black/30 text-neutral-400 hover:text-white hover:bg-neutral-800 border border-white/5'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="bg-black/40 border-white/10 text-neutral-300 hover:bg-neutral-800 text-xs h-8 px-2.5 disabled:opacity-40"
+                >
+                  Suivant <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -183,7 +183,7 @@ export default function EncaissementsPage() {
               <tbody className="divide-y divide-white/5">
                 {paginatedEncaissements.length > 0 ? (
                   paginatedEncaissements.map((tx) => (
-                    <tr key={tx.id} className="group hover:bg-white/[0.02] transition-colors">
+                    <tr key={tx.id} className="group hover:bg-white/2 transition-colors">
                       <td className="py-4">
                         <div>
                           <p className="font-semibold text-white text-base leading-snug">{tx.tenant}</p>
