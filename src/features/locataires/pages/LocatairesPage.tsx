@@ -498,7 +498,12 @@ export default function LocatairesPage() {
       {/* Main card panel */}
       <Card className="bg-[#121318] border-white/5 text-white">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
-          <CardTitle className="text-lg font-bold">Portefeuille des locataires</CardTitle>
+          <div>
+            <CardTitle className="text-lg font-bold">Portefeuille des locataires</CardTitle>
+            <CardDescription className="text-neutral-400 text-xs mt-0.5">
+              Vue liste allégée. L'email et l'horodatage précis d'enregistrement sont consultables au format carte.
+            </CardDescription>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative w-full sm:w-64">
@@ -556,7 +561,6 @@ export default function LocatairesPage() {
                   <tr className="border-b border-white/5 text-neutral-400 font-medium">
                     <th className="pb-3 text-xs uppercase tracking-wider">Locataire</th>
                     <th className="pb-3 text-xs uppercase tracking-wider">Logement</th>
-                    <th className="pb-3 text-xs uppercase tracking-wider">Ajouté le</th>
                     <th className="pb-3 text-xs uppercase tracking-wider">Loyer mensuel</th>
                     <th className="pb-3 text-xs uppercase tracking-wider">Statut</th>
                     <th className="pb-3 text-right text-xs uppercase tracking-wider">Actions</th>
@@ -566,23 +570,20 @@ export default function LocatairesPage() {
                   {paginatedLocataires.length > 0 ? (
                     paginatedLocataires.map((loc) => (
                       <tr key={loc.id} className="group hover:bg-white/[0.02] transition-colors">
-                        <td className="py-4">
-                          <div>
-                            <p className="font-semibold text-white text-base leading-snug">{loc.name}</p>
-                            <p className="text-xs text-neutral-500 mt-0.5">
-                              {loc.email} <span className="opacity-40">·</span> {loc.phone}
-                            </p>
+                        <td className="py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-lg bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center font-bold text-xs text-[#E5B842] shrink-0">
+                              {loc.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-white text-sm leading-snug">{loc.name}</p>
+                              <p className="text-xs font-mono text-neutral-400 mt-0.5">{loc.phone}</p>
+                            </div>
                           </div>
                         </td>
-                        <td className="py-4 text-neutral-300 text-sm">{loc.property}</td>
-                        <td className="py-4">
-                          <div className="flex items-center gap-1.5 text-xs text-neutral-300">
-                            <Clock className="h-3.5 w-3.5 text-[#E5B842]" />
-                            <span>{loc.createdAt || '12 Août 2026 à 09:15'}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 font-mono font-semibold text-neutral-200 text-sm">{loc.rentVal.toLocaleString()} F</td>
-                        <td className="py-4">
+                        <td className="py-3.5 text-neutral-300 text-sm">{loc.property}</td>
+                        <td className="py-3.5 font-mono font-semibold text-neutral-200 text-sm">{loc.rentVal.toLocaleString()} F</td>
+                        <td className="py-3.5">
                           {loc.status === 'paid' && (
                             <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
                               Payé
@@ -599,7 +600,7 @@ export default function LocatairesPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-4 text-right">
+                        <td className="py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {loc.status === 'paid' ? (
                               <button 
@@ -651,7 +652,7 @@ export default function LocatairesPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-neutral-500">
+                      <td colSpan={5} className="py-8 text-center text-neutral-500">
                         Aucun locataire trouvé.
                       </td>
                     </tr>
@@ -680,25 +681,31 @@ export default function LocatairesPage() {
                         {loc.status === 'paid' ? 'À jour' : loc.status === 'pending' ? 'En attente' : `Retard · ${loc.delayDays}j`}
                       </span>
                     </CardHeader>
-                    <CardContent className="space-y-4 pt-1">
-                      <div className="space-y-1.5 text-xs text-neutral-300">
-                        <div className="flex items-center gap-2 text-neutral-400">
-                          <Phone className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>{loc.phone}</span>
+                    <CardContent className="space-y-3.5 pt-1">
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/5">
+                          <span className="text-neutral-400 flex items-center gap-1.5 text-[11px]">
+                            <Phone className="h-3 w-3 text-[#E5B842]" /> Téléphone
+                          </span>
+                          <span className="font-mono text-neutral-200">{loc.phone}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-neutral-400">
-                          <Mail className="h-3.5 w-3.5 text-neutral-500" />
-                          <span className="truncate">{loc.email}</span>
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/5">
+                          <span className="text-neutral-400 flex items-center gap-1.5 text-[11px]">
+                            <Mail className="h-3 w-3 text-[#E5B842]" /> Email
+                          </span>
+                          <span className="text-neutral-200 truncate max-w-[170px]">{loc.email}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-neutral-400 text-[11px] pt-0.5">
-                          <Clock className="h-3.5 w-3.5 text-[#E5B842]" />
-                          <span>Ajouté le {loc.createdAt || '12 Août 2026 à 09:15'}</span>
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/5">
+                          <span className="text-neutral-400 flex items-center gap-1.5 text-[11px]">
+                            <Clock className="h-3 w-3 text-[#E5B842]" /> Ajouté le
+                          </span>
+                          <span className="text-neutral-300 text-[11px]">{loc.createdAt || '12 Août 2026 à 09:15'}</span>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between border-t border-white/5 pt-3">
                         <span className="text-xs text-neutral-400">Loyer mensuel</span>
-                        <span className="font-mono font-bold text-white text-base">
+                        <span className="font-mono font-bold text-[#E5B842] text-base">
                           {loc.rentVal.toLocaleString()} F
                         </span>
                       </div>

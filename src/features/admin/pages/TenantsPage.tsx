@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { AgencyDetailModal } from '../components/AgencyDetailModal';
+import { AddAgencyModal } from '../components/AddAgencyModal';
 import type { AgencyDetail } from '../types';
 import { toast } from 'sonner';
 
@@ -257,6 +258,7 @@ export default function TenantsPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>('all');
   const [selectedAgency, setSelectedAgency] = useState<AgencyDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Pagination (5 items per page)
   const [currentPage, setCurrentPage] = useState(1);
@@ -330,6 +332,11 @@ export default function TenantsPage() {
     );
   };
 
+  const handleAddAgency = (newAgency: AgencyDetail) => {
+    setAgences((prev) => [newAgency, ...prev]);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="space-y-8 bg-[#0A0A0C] text-neutral-200 min-h-screen">
       {/* Header */}
@@ -351,7 +358,7 @@ export default function TenantsPage() {
 
         <div className="flex items-center gap-2">
           <Button 
-            onClick={() => toast.info('Formulaire d\'embarquement d\'une nouvelle agence partenaire')}
+            onClick={() => setIsAddModalOpen(true)}
             className="bg-rose-600 hover:bg-rose-700 text-white font-semibold gap-1.5 px-4 shadow-md text-xs h-9"
           >
             <Plus className="h-4 w-4" /> Enregistrer une agence
@@ -632,6 +639,14 @@ export default function TenantsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onToggleStatus={handleToggleStatus}
+      />
+
+      {/* Add New Partner Agency Modal */}
+      <AddAgencyModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAddAgency={handleAddAgency}
+        existingAgencies={agences}
       />
     </div>
   );
