@@ -10,7 +10,12 @@ import {
   Search, 
   Plus, 
   ChevronRight, 
-  X 
+  X,
+  AlertTriangle,
+  UserPlus,
+  Server,
+  ArrowRight,
+  CheckCheck
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { cn } from '@/shared/lib/utils';
@@ -33,18 +38,23 @@ export function AgentLayout({ children }: AgentLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { locataires, recentActivities } = useAgencyStore();
+  const { locataires, notifications = [], markAsRead, markAllAsRead } = useAgencyStore();
   const { logout } = useAuthStore();
 
   const lateCount = useMemo(() => {
     return locataires.filter((l) => l.status === 'late').length;
   }, [locataires]);
 
+  const unreadNotificationsCount = useMemo(() => {
+    return (notifications || []).filter((n) => !n.isRead).length;
+  }, [notifications]);
+
   const NAV_ITEMS = [
     { label: "Vue d'ensemble", href: '/agence/dashboard', icon: LayoutDashboard },
     { label: 'Locataires', href: '/agence/locataires', icon: Users, badge: locataires.length },
     { label: 'Encaissements', href: '/agence/encaissements', icon: CreditCard },
     { label: 'Relances', href: '/agence/relances', icon: Send, badge: lateCount > 0 ? lateCount : undefined, badgeColor: 'bg-rose-500/20 text-rose-400 border border-rose-500/30' },
+    { label: 'Notifications', href: '/agence/notifications', icon: Bell, badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined, badgeColor: 'bg-[#E5B842]/20 text-[#E5B842] border border-[#E5B842]/30' },
     { label: 'Paramètres', href: '/agence/parametres', icon: Settings },
   ];
 
@@ -263,56 +273,120 @@ export function AgentLayout({ children }: AgentLayoutProps) {
               <button
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                 className="relative p-2 rounded-lg bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/10 transition-colors"
-                title="Notifications"
+                title="Notifications & Alertes"
               >
                 <Bell className="h-4 w-4" />
-                {recentActivities.length > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#E5B842] text-[10px] font-bold text-black flex items-center justify-center ring-2 ring-white dark:ring-[#0E0F14]">
-                    {recentActivities.length}
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#E5B842] text-[10px] font-bold text-black flex items-center justify-center ring-2 ring-white dark:ring-[#0E0F14] animate-pulse">
+                    {unreadNotificationsCount}
                   </span>
                 )}
               </button>
 
               {/* Notifications Dropdown */}
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-xl bg-white dark:bg-[#14151B] border border-slate-200 dark:border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150 text-slate-800 dark:text-white">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+                <div className="absolute right-0 mt-2 w-84 sm:w-96 rounded-xl bg-white dark:bg-[#14151B] border border-slate-200 dark:border-white/10 shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150 text-slate-800 dark:text-white">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/5">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold uppercase tracking-wider">Alertes &amp; Activités</span>
-                      <span className="text-[10px] bg-[#E5B842]/20 text-[#E5B842] font-semibold px-1.5 py-0.5 rounded-full font-mono">
-                        {recentActivities.length}
-                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wider">Alertes &amp; Notifications</span>
+                      {unreadNotificationsCount > 0 && (
+                        <span className="text-[10px] bg-[#E5B842]/20 text-[#E5B842] font-semibold px-1.5 py-0.5 rounded-full font-mono">
+                          {unreadNotificationsCount} non lue{unreadNotificationsCount > 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
-                    <button 
-                      className="text-[11px] text-slate-400 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-white transition-colors"
-                      onClick={() => setIsNotificationsOpen(false)}
-                    >
-                      Fermer
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {unreadNotificationsCount > 0 && (
+                        <button 
+                          className="text-[11px] text-[#E5B842] hover:underline flex items-center gap-1 font-medium"
+                          onClick={() => {
+                            markAllAsRead();
+                            toast.success('Toutes les notifications ont été marquées comme lues');
+                          }}
+                          title="Marquer toutes comme lues"
+                        >
+                          <CheckCheck className="h-3 w-3" />
+                          Tout lire
+                        </button>
+                      )}
+                      <button 
+                        className="text-[11px] text-slate-400 dark:text-neutral-400 hover:text-slate-700 dark:hover:text-white transition-colors ml-1"
+                        onClick={() => setIsNotificationsOpen(false)}
+                      >
+                        Fermer
+                      </button>
+                    </div>
                   </div>
-                  <div className="space-y-2 mt-2 max-h-64 overflow-y-auto">
-                    {recentActivities.length > 0 ? (
-                      recentActivities.map((act) => (
-                        <div key={act.id} className="p-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-slate-100 dark:border-white/5 text-xs space-y-0.5 hover:border-slate-300 dark:hover:border-white/10 transition-colors">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold flex items-center gap-1.5">
-                              {act.type === 'paiement' ? (
-                                <CreditCard className="h-3 w-3 text-emerald-500" />
-                              ) : act.type === 'relance' ? (
-                                <Send className="h-3 w-3 text-sky-500" />
-                              ) : (
-                                <Users className="h-3 w-3 text-[#E5B842]" />
+
+                  {/* List of notifications */}
+                  <div className="space-y-1.5 mt-2 max-h-72 overflow-y-auto pr-0.5">
+                    {(notifications || []).length > 0 ? (
+                      (notifications || []).slice(0, 5).map((notif) => (
+                        <div 
+                          key={notif.id} 
+                          onClick={() => {
+                            markAsRead(notif.id);
+                            setIsNotificationsOpen(false);
+                            navigate(`/agence/notifications?id=${notif.id}`);
+                          }}
+                          className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                            !notif.isRead 
+                              ? 'bg-amber-500/5 dark:bg-[#E5B842]/5 border-amber-500/20 dark:border-[#E5B842]/20 hover:border-[#E5B842]/50' 
+                              : 'bg-slate-50 dark:bg-black/40 border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className={`h-6 w-6 rounded-md flex items-center justify-center shrink-0 ${
+                                notif.type === 'paiement' ? 'bg-emerald-500/10 text-emerald-500' :
+                                notif.type === 'retard' ? 'bg-rose-500/10 text-rose-500' :
+                                notif.type === 'relance' ? 'bg-sky-500/10 text-sky-500' :
+                                notif.type === 'locataire' ? 'bg-[#E5B842]/10 text-[#E5B842]' :
+                                'bg-purple-500/10 text-purple-500'
+                              }`}>
+                                {notif.type === 'paiement' ? <CreditCard className="h-3.5 w-3.5" /> :
+                                 notif.type === 'retard' ? <AlertTriangle className="h-3.5 w-3.5" /> :
+                                 notif.type === 'relance' ? <Send className="h-3.5 w-3.5" /> :
+                                 notif.type === 'locataire' ? <UserPlus className="h-3.5 w-3.5" /> :
+                                 <Server className="h-3.5 w-3.5" />}
+                              </div>
+                              <span className={`font-semibold text-xs leading-snug truncate ${
+                                !notif.isRead ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-700 dark:text-neutral-300'
+                              }`}>
+                                {notif.title}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[10px] text-slate-400 dark:text-neutral-500 font-mono">{notif.timeAgo}</span>
+                              {!notif.isRead && (
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#E5B842] shrink-0" />
                               )}
-                              {act.title}
-                            </span>
-                            <span className="text-[10px] text-slate-400 dark:text-neutral-500 font-mono">{act.time}</span>
+                            </div>
                           </div>
-                          <p className="text-slate-600 dark:text-neutral-400 text-[11px] pl-4.5">{act.description}</p>
+
+                          <p className="text-slate-600 dark:text-neutral-400 text-[11px] mt-1 line-clamp-1 pl-8">
+                            {notif.description}
+                          </p>
                         </div>
                       ))
                     ) : (
                       <p className="text-center text-xs text-slate-400 dark:text-neutral-500 py-4">Aucune notification</p>
                     )}
+                  </div>
+
+                  {/* Dropdown footer link to /agence/notifications */}
+                  <div className="pt-2 mt-2 border-t border-slate-100 dark:border-white/5">
+                    <button
+                      onClick={() => {
+                        setIsNotificationsOpen(false);
+                        navigate('/agence/notifications');
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-xs font-semibold text-amber-600 dark:text-[#E5B842] transition-colors"
+                    >
+                      <span>Voir toutes les notifications</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
               )}

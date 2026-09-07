@@ -4,6 +4,7 @@ import { LocatairesPage } from '@/features/locataires';
 import { EncaissementsPage } from '@/features/encaissements';
 import { RelancesPage } from '@/features/relances';
 import { ParametresPage } from '@/features/parametres';
+import { NotificationsPage } from '@/features/notifications';
 import { AgentLayout } from '@/shared/components/AgentLayout';
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 
@@ -16,6 +17,7 @@ export function AgentRoutes() {
           <Route path="locataires" element={<LocatairesPage />} />
           <Route path="encaissements" element={<EncaissementsPage />} />
           <Route path="relances" element={<RelancesPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="parametres" element={<ParametresPage />} />
         </Routes>
       </AgentLayout>
