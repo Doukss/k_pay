@@ -1,5 +1,7 @@
 import { motion, type Variants } from 'motion/react';
 import { ShieldCheck, Zap, WalletCards } from 'lucide-react';
+import waveLogo from '@/assets/wave.png';
+import omLogo from '@/assets/om.png';
 
 interface Guarantee {
   icon: typeof ShieldCheck;
@@ -84,17 +86,54 @@ export function MobileMoneyShowcase() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.5 }}
-          className="mt-12 flex flex-wrap items-center justify-center gap-6"
+          className="mt-12 flex flex-wrap items-center justify-center gap-5 sm:gap-8"
         >
-          <div className="flex h-20 w-48 items-center justify-center rounded-xl border bg-card shadow-sm">
-            <img src="/images/logo-wave.svg" alt="Wave" className="h-8 w-auto" />
+          {/* Card Wave Sénégal */}
+          <div className="group flex items-center gap-4 px-6 py-4 rounded-2xl border border-sky-500/20 bg-sky-500/[0.03] dark:bg-[#0C131D] hover:border-sky-500/50 hover:bg-sky-500/[0.08] transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-0.5">
+            <div className="h-14 w-14 rounded-2xl overflow-hidden shadow-md flex items-center justify-center bg-[#1DA1F2] shrink-0 p-0.5">
+              <img 
+                src={waveLogo} 
+                alt="Logo Wave Sénégal" 
+                className="h-full w-full object-cover rounded-xl transform group-hover:scale-105 transition-transform duration-300" 
+              />
+            </div>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold text-slate-900 dark:text-white">
+                  Wave
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                  Instantané 1%
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
+                Scan QR direct &amp; lien de paiement mobile
+              </p>
+            </div>
           </div>
-          <div className="flex h-20 w-48 items-center justify-center rounded-xl border bg-card shadow-sm">
-            <img
-              src="/images/logo-orange-money.svg"
-              alt="Orange Money"
-              className="h-8 w-auto"
-            />
+
+          {/* Card Orange Money Sénégal */}
+          <div className="group flex items-center gap-4 px-6 py-4 rounded-2xl border border-orange-500/20 bg-orange-500/[0.03] dark:bg-[#1A120B] hover:border-orange-500/50 hover:bg-orange-500/[0.08] transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-0.5">
+            <div className="h-14 w-14 rounded-2xl overflow-hidden shadow-md flex items-center justify-center bg-white p-1 shrink-0">
+              <img 
+                src={omLogo} 
+                alt="Logo Orange Money Sénégal" 
+                className="h-full w-full object-contain transform group-hover:scale-105 transition-transform duration-300" 
+              />
+            </div>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold text-slate-900 dark:text-white">
+                  Orange Money
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-600 dark:text-orange-400">
+                  Officiel Webpay
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-neutral-400 mt-0.5">
+                Passerelle Webpay &amp; code marchand sécurisé
+              </p>
+            </div>
           </div>
         </motion.div>
 
