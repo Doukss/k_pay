@@ -56,11 +56,43 @@ export interface AgencyNotification {
   };
 }
 
+export type PlanTier = 'starter' | 'business' | 'pro';
+
+export interface SubscriptionInvoice {
+  id: string;
+  month: string;
+  amount: number;
+  date: string;
+  paymentMethod: 'Wave' | 'Orange Money';
+  reference: string;
+  status: 'paid';
+}
+
+export interface AgencySubscription {
+  planId: PlanTier;
+  planName: string;
+  price: number;
+  maxTenants: number;
+  status: 'trial' | 'active' | 'expired';
+  isTrial: boolean;
+  trialDaysRemaining: number;
+  trialExpiresAt: string;
+  trialAlreadyUsed: boolean;
+  lastPaymentDate?: string;
+  nextBillingDate?: string;
+  paymentMethod?: 'Wave' | 'Orange Money';
+  transactionRef?: string;
+  autoRenew?: boolean;
+  monthlyRenewalDue?: boolean;
+  invoices: SubscriptionInvoice[];
+}
+
 interface AgencyState {
   locataires: Locataire[];
   encaissements: Encaissement[];
   recentActivities: RecentActivity[];
   notifications: AgencyNotification[];
+  subscription: AgencySubscription;
   addLocataire: (loc: Omit<Locataire, 'id'>) => void;
   deleteLocataire: (id: number) => void;
   updateLocataire: (id: number, updated: Partial<Locataire>) => void;
@@ -71,6 +103,13 @@ interface AgencyState {
   markAllAsRead: () => void;
   deleteNotification: (id: string) => void;
   addNotification: (notification: Omit<AgencyNotification, 'id' | 'isRead'>) => void;
+  startTrial: (planId: 'starter' | 'business') => { success: boolean; message: string };
+  paySubscription: (planId: PlanTier, method: 'Wave' | 'Orange Money') => { success: boolean; message: string };
+  renewSubscription: (method?: 'Wave' | 'Orange Money') => { success: boolean; message: string };
+  toggleAutoRenew: () => void;
+  simulateTrialExpiry: () => void;
+  simulateMonthlyExpiry: () => void;
+  resetTrialTo30Days: () => void;
   resetToDemoData: () => void;
 }
 
@@ -264,6 +303,33 @@ export const defaultNotifications: AgencyNotification[] = [
   },
 ];
 
+export const defaultSubscription: AgencySubscription = {
+  planId: 'starter',
+  planName: 'Starter (50 locataires)',
+  price: 15000,
+  maxTenants: 50,
+  status: 'trial',
+  isTrial: true,
+  trialDaysRemaining: 24,
+  trialExpiresAt: '04 Oct. 2026',
+  trialAlreadyUsed: false,
+  autoRenew: true,
+  monthlyRenewalDue: false,
+  nextBillingDate: '04 Oct. 2026',
+  paymentMethod: 'Wave',
+  invoices: [
+    {
+      id: 'KP-INV-2026-08',
+      month: 'Août 2026',
+      amount: 15000,
+      date: '04 Août 2026',
+      paymentMethod: 'Wave',
+      reference: 'KP-SUB-WAVE-8821-SN',
+      status: 'paid',
+    },
+  ],
+};
+
 export const useAgencyStore = create<AgencyState>()(
   persist(
     (set) => ({
@@ -271,6 +337,7 @@ export const useAgencyStore = create<AgencyState>()(
       encaissements: defaultEncaissements,
       recentActivities: defaultActivities,
       notifications: defaultNotifications,
+      subscription: defaultSubscription,
 
       addLocataire: (loc) =>
         set((state) => {
@@ -523,12 +590,312 @@ export const useAgencyStore = create<AgencyState>()(
           ],
         })),
 
+      startTrial: (planId) => {
+        let result = { success: false, message: '' };
+        set((state) => {
+          const currentSub = state.subscription || defaultSubscription;
+          if (currentSub.trialAlreadyUsed) {
+            result = {
+              success: false,
+              message: "Votre agence a déjà consommé son essai gratuit de 30 jours. L'offre d'essai est réservée à une utilisation unique.",
+            };
+            return {};
+          }
+
+          const now = new Date();
+          const expireDate = new Date();
+          expireDate.setDate(expireDate.getDate() + 30);
+          const formattedExpiry = expireDate.toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          });
+
+          const planName = planId === 'starter' ? 'Starter (50 locataires)' : 'Business (100 locataires)';
+          const price = planId === 'starter' ? 15000 : 25000;
+          const maxTenants = planId === 'starter' ? 50 : 100;
+
+          const updatedSub: AgencySubscription = {
+            planId,
+            planName,
+            price,
+            maxTenants,
+            status: 'trial',
+            isTrial: true,
+            trialDaysRemaining: 30,
+            trialExpiresAt: formattedExpiry,
+            trialAlreadyUsed: false,
+            autoRenew: true,
+            monthlyRenewalDue: false,
+            invoices: currentSub.invoices || defaultSubscription.invoices || [],
+          };
+
+          const newNotif: AgencyNotification = {
+            id: `notif-${Date.now()}`,
+            type: 'system',
+            title: `Essai gratuit 30 jours activé (${planName})`,
+            description: `Profitez de toutes les fonctionnalités jusqu'au ${formattedExpiry}`,
+            message: `Votre période d'essai gratuit de 30 jours pour le forfait ${planName} a démarré. À l'issue des 30 jours, activez votre forfait par Wave ou Orange Money.`,
+            timestamp: now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+            timeAgo: 'À l\'instant',
+            isRead: false,
+            priority: 'normal',
+          };
+
+          result = {
+            success: true,
+            message: `Essai gratuit de 30 jours activé avec succès pour le forfait ${planName} !`,
+          };
+
+          return {
+            subscription: updatedSub,
+            notifications: [newNotif, ...(state.notifications || defaultNotifications)],
+          };
+        });
+        return result;
+      },
+
+      paySubscription: (planId, method) => {
+        let result = { success: true, message: '' };
+        set((state) => {
+          const now = new Date();
+          const nextMonth = new Date();
+          nextMonth.setDate(nextMonth.getDate() + 30);
+
+          const formattedNow = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+          const formattedNext = nextMonth.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+          const planName = planId === 'starter' ? 'Starter (50 locataires)' : planId === 'business' ? 'Business (100 locataires)' : 'Plan Pro (Illimité)';
+          const price = planId === 'starter' ? 15000 : planId === 'business' ? 25000 : 60000;
+          const maxTenants = planId === 'starter' ? 50 : planId === 'business' ? 100 : 9999;
+          const ref = `KP-SUB-${method === 'Wave' ? 'WAVE' : 'OM'}-${Math.floor(1000 + Math.random() * 9000)}-SN`;
+
+          const newInvoice: SubscriptionInvoice = {
+            id: `KP-INV-${Date.now()}`,
+            month: now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+            amount: price,
+            date: formattedNow,
+            paymentMethod: method,
+            reference: ref,
+            status: 'paid',
+          };
+
+          const currentInvoices = state.subscription?.invoices || defaultSubscription.invoices || [];
+
+          const updatedSub: AgencySubscription = {
+            planId,
+            planName,
+            price,
+            maxTenants,
+            status: 'active',
+            isTrial: false,
+            trialDaysRemaining: 0,
+            trialExpiresAt: '',
+            trialAlreadyUsed: true, // Strictly marked as used
+            paymentMethod: method,
+            lastPaymentDate: formattedNow,
+            nextBillingDate: formattedNext,
+            transactionRef: ref,
+            autoRenew: state.subscription?.autoRenew ?? true,
+            monthlyRenewalDue: false,
+            invoices: [newInvoice, ...currentInvoices],
+          };
+
+          const newNotif: AgencyNotification = {
+            id: `notif-${Date.now()}`,
+            type: 'paiement',
+            title: `Abonnement ${planName} activé`,
+            description: `Règlement de ${price.toLocaleString()} FCFA par ${method}`,
+            message: `Félicitations ! Votre abonnement pour l'agence est validé jusqu'au ${formattedNext}. Référence transaction : ${ref}.`,
+            timestamp: formattedNow,
+            timeAgo: 'À l\'instant',
+            isRead: false,
+            priority: 'normal',
+            details: {
+              amount: price,
+              paymentMethod: method,
+              reference: ref,
+            },
+          };
+
+          result = {
+            success: true,
+            message: `Abonnement ${planName} validé par ${method} avec succès !`,
+          };
+
+          return {
+            subscription: updatedSub,
+            notifications: [newNotif, ...(state.notifications || defaultNotifications)],
+          };
+        });
+        return result;
+      },
+
+      renewSubscription: (method) => {
+        let result = { success: true, message: '' };
+        set((state) => {
+          const currentSub = state.subscription || defaultSubscription;
+          const actualMethod = method || currentSub.paymentMethod || 'Wave';
+          const now = new Date();
+          const nextMonth = new Date();
+          nextMonth.setDate(nextMonth.getDate() + 30);
+
+          const formattedNow = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+          const formattedNext = nextMonth.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+          const ref = `KP-REN-${actualMethod === 'Wave' ? 'WAVE' : 'OM'}-${Math.floor(1000 + Math.random() * 9000)}-SN`;
+
+          const newInvoice: SubscriptionInvoice = {
+            id: `KP-INV-${Date.now()}`,
+            month: now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+            amount: currentSub.price,
+            date: formattedNow,
+            paymentMethod: actualMethod,
+            reference: ref,
+            status: 'paid',
+          };
+
+          const currentInvoices = currentSub.invoices || defaultSubscription.invoices || [];
+
+          const updatedSub: AgencySubscription = {
+            ...currentSub,
+            status: 'active',
+            isTrial: false,
+            trialDaysRemaining: 0,
+            trialExpiresAt: '',
+            trialAlreadyUsed: true,
+            monthlyRenewalDue: false,
+            paymentMethod: actualMethod,
+            lastPaymentDate: formattedNow,
+            nextBillingDate: formattedNext,
+            transactionRef: ref,
+            invoices: [newInvoice, ...currentInvoices],
+          };
+
+          const newNotif: AgencyNotification = {
+            id: `notif-${Date.now()}`,
+            type: 'paiement',
+            title: `Renouvellement mensuel validé (${currentSub.planName})`,
+            description: `Mensualité de ${currentSub.price.toLocaleString()} FCFA réglée par ${actualMethod}`,
+            message: `Votre abonnement a été renouvelé avec succès pour 30 jours jusqu'au ${formattedNext}. Référence : ${ref}.`,
+            timestamp: formattedNow,
+            timeAgo: 'À l\'instant',
+            isRead: false,
+            priority: 'normal',
+            details: {
+              amount: currentSub.price,
+              paymentMethod: actualMethod,
+              reference: ref,
+            },
+          };
+
+          result = {
+            success: true,
+            message: `Abonnement ${currentSub.planName} renouvelé pour 30 jours via ${actualMethod} !`,
+          };
+
+          return {
+            subscription: updatedSub,
+            notifications: [newNotif, ...(state.notifications || defaultNotifications)],
+          };
+        });
+        return result;
+      },
+
+      toggleAutoRenew: () =>
+        set((state) => ({
+          subscription: {
+            ...(state.subscription || defaultSubscription),
+            autoRenew: !(state.subscription?.autoRenew ?? true),
+          },
+        })),
+
+      simulateTrialExpiry: () =>
+        set((state) => {
+          const currentSub = state.subscription || defaultSubscription;
+          const updatedSub: AgencySubscription = {
+            ...currentSub,
+            status: 'expired',
+            isTrial: true,
+            trialDaysRemaining: 0,
+            trialAlreadyUsed: true,
+            monthlyRenewalDue: false,
+          };
+
+          const now = new Date();
+          const newNotif: AgencyNotification = {
+            id: `notif-${Date.now()}`,
+            type: 'retard',
+            title: 'Essai gratuit de 30 jours expiré',
+            description: 'Veuillez activer votre abonnement pour débloquer toutes les fonctionnalités',
+            message: `Votre période d'essai de 30 jours pour le forfait ${currentSub.planName} est terminée. Activez dès maintenant votre abonnement via Wave ou Orange Money.`,
+            timestamp: now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+            timeAgo: 'À l\'instant',
+            isRead: false,
+            priority: 'high',
+          };
+
+          return {
+            subscription: updatedSub,
+            notifications: [newNotif, ...(state.notifications || defaultNotifications)],
+          };
+        }),
+
+      simulateMonthlyExpiry: () =>
+        set((state) => {
+          const currentSub = state.subscription || defaultSubscription;
+          const updatedSub: AgencySubscription = {
+            ...currentSub,
+            status: 'expired',
+            monthlyRenewalDue: true,
+            isTrial: false,
+          };
+
+          const now = new Date();
+          const newNotif: AgencyNotification = {
+            id: `notif-${Date.now()}`,
+            type: 'retard',
+            title: 'Renouvellement mensuel requis',
+            description: `L'échéance mensuelle de votre abonnement (${currentSub.planName}) est arrivée à terme`,
+            message: `Votre abonnement mensuel de ${currentSub.price.toLocaleString()} FCFA est arrivé à échéance de 30 jours. Veuillez effectuer le renouvellement via Wave ou Orange Money pour continuer à gérer vos locataires et loyers.`,
+            timestamp: now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+            timeAgo: 'À l\'instant',
+            isRead: false,
+            priority: 'high',
+          };
+
+          return {
+            subscription: updatedSub,
+            notifications: [newNotif, ...(state.notifications || defaultNotifications)],
+          };
+        }),
+
+      resetTrialTo30Days: () =>
+        set(() => ({
+          subscription: {
+            planId: 'starter',
+            planName: 'Starter (50 locataires)',
+            price: 15000,
+            maxTenants: 50,
+            status: 'trial',
+            isTrial: true,
+            trialDaysRemaining: 30,
+            trialExpiresAt: '10 Oct. 2026',
+            trialAlreadyUsed: false,
+            autoRenew: true,
+            monthlyRenewalDue: false,
+            nextBillingDate: '10 Oct. 2026',
+            paymentMethod: 'Wave',
+            invoices: defaultSubscription.invoices,
+          },
+        })),
+
       resetToDemoData: () =>
         set({
           locataires: defaultLocataires,
           encaissements: defaultEncaissements,
           recentActivities: defaultActivities,
           notifications: defaultNotifications,
+          subscription: defaultSubscription,
         }),
     }),
     {

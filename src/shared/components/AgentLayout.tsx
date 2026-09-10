@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import { useAgencyStore } from '@/stores/agencyStore';
 import { useAuthStore } from '@/stores/authStore';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
+import { SubscriptionModal } from '@/shared/components/SubscriptionModal';
 import { toast } from 'sonner';
 
 interface AgentLayoutProps {
@@ -34,11 +35,12 @@ export function AgentLayout({ children }: AgentLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { locataires, notifications = [], markAsRead, markAllAsRead } = useAgencyStore();
+  const { locataires, notifications = [], subscription, markAsRead, markAllAsRead } = useAgencyStore();
   const { logout } = useAuthStore();
 
   const lateCount = useMemo(() => {
@@ -96,9 +98,27 @@ export function AgentLayout({ children }: AgentLayoutProps) {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs text-slate-600 dark:text-neutral-300 font-medium">immo221</span>
             </div>
-            <span className="inline-flex items-center rounded-full bg-[#E5B842]/10 px-2 py-0.5 text-[9px] font-bold text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20">
-              PLAN PRO
-            </span>
+            {subscription?.status === 'expired' ? (
+              <span 
+                onClick={() => setIsSubscriptionModalOpen(true)}
+                className="cursor-pointer inline-flex items-center rounded-full bg-rose-500/20 px-2 py-0.5 text-[9px] font-bold text-rose-400 ring-1 ring-inset ring-rose-500/30 hover:bg-rose-500/30 transition-colors"
+                title="Cliquer pour régulariser l'abonnement"
+              >
+                {subscription.monthlyRenewalDue ? 'RENOUVELLEMENT REQUIS' : 'ESSAI EXPIRÉ'}
+              </span>
+            ) : subscription?.isTrial ? (
+              <span 
+                onClick={() => setIsSubscriptionModalOpen(true)}
+                className="cursor-pointer inline-flex items-center rounded-full bg-[#E5B842]/10 px-2 py-0.5 text-[9px] font-bold text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20 hover:bg-[#E5B842]/20 transition-colors"
+                title="Cliquer pour gérer le forfait"
+              >
+                {subscription.planId.toUpperCase()} · ESSAI {subscription.trialDaysRemaining}J
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+                {subscription?.planId ? subscription.planId.toUpperCase() : 'PLAN PRO'} ACTIF
+              </span>
+            )}
           </div>
         </div>
 
@@ -454,11 +474,45 @@ export function AgentLayout({ children }: AgentLayoutProps) {
           </div>
         )}
 
+        {/* Trial Expired or Monthly Renewal Due Alert Banner */}
+        {subscription?.status === 'expired' && (
+          <div className="bg-rose-950/40 border-b border-rose-500/30 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-rose-200">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+              <span>
+                {subscription?.monthlyRenewalDue ? (
+                  <>
+                    <strong>Renouvellement mensuel requis :</strong> L'échéance mensuelle de votre forfait ({subscription.planName}) est arrivée à terme. Veuillez renouveler votre mensualité de {subscription.price?.toLocaleString() || '15 000'} FCFA pour continuer à encaisser vos loyers.
+                  </>
+                ) : (
+                  <>
+                    <strong>Période d'essai de 30 jours terminée :</strong> Pour continuer à gérer vos locataires et encaisser vos loyers, activez dès maintenant votre abonnement mensuel ({subscription.price?.toLocaleString() || '15 000'} FCFA/mois).
+                  </>
+                )}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-bold text-xs h-8 px-4 shrink-0 shadow-md"
+            >
+              {subscription?.monthlyRenewalDue ? 'Renouveler ce mois (Wave / OM)' : "Activer l'abonnement"}
+            </Button>
+          </div>
+        )}
+
         {/* Page Content Viewport */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 w-full max-w-none">
           {children}
         </main>
       </div>
+
+      {/* Subscription Payment & Upgrade Modal */}
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        defaultPlanId={subscription?.planId || 'starter'}
+      />
     </div>
   );
 }

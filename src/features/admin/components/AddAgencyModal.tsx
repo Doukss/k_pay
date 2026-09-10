@@ -99,7 +99,7 @@ export function AddAgencyModal({
       year: 'numeric',
     }).format(now);
 
-    const quota = plan === 'Entreprise' ? 500 : plan === 'Plan Pro' ? 100 : 5;
+    const quota = plan === 'Entreprise' ? 9999 : plan === 'Plan Pro' ? 100 : 50;
     const commissionRate = plan === 'Entreprise' ? 1.0 : plan === 'Plan Pro' ? 1.5 : 2.0;
 
     const newAgency: AgencyDetail = {
@@ -344,7 +344,7 @@ export function AddAgencyModal({
                       {plan === p && <Check className="h-3.5 w-3.5 text-[#E5B842]" />}
                     </div>
                     <p className="text-[10px] text-neutral-500 mt-1">
-                      {p === 'Gratuit' ? 'Quota : 5 loc.' : p === 'Plan Pro' ? 'Quota : 100 loc.' : 'Quota : 500 loc.'}
+                      {p === 'Gratuit' ? '15k F (50 loc.)' : p === 'Plan Pro' ? '25k F (100 loc.)' : 'Pro (Illimité)'}
                     </p>
                   </button>
                 ))}

@@ -1,6 +1,6 @@
 import { motion, type Variants } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 
@@ -12,58 +12,65 @@ interface Plan {
   description: string;
   quota: string;
   features: string[];
+  trialBadge?: string;
   highlighted?: boolean;
   cta: string;
 }
 
 const PLANS: Plan[] = [
   {
-    id: 'essai',
-    name: 'Essai',
-    price: '0',
-    period: 'FCFA / 14 jours',
-    description: 'Pour tester la plateforme sans engagement.',
-    quota: "Jusqu'à 10 locataires",
+    id: 'starter',
+    name: 'Starter',
+    price: '15 000',
+    period: 'FCFA / mois',
+    description: 'Pour les agences démarrant la digitalisation de leurs biens.',
+    quota: "Jusqu'à 50 locataires max",
+    trialBadge: '30 jours d\'essai gratuit',
     features: [
-      'Relances SMS & WhatsApp',
-      'Paiement Wave & Orange Money',
-      'Dashboard agent complet',
-      'Support par email',
+      "Jusqu'à 50 locataires gérés",
+      'Passerelles Wave & Orange Money',
+      'Relances WhatsApp & SMS',
+      'Quittances PDF certifiées',
+      'Tableau de bord & suivi temps réel',
+      'Support réactif par WhatsApp & Email',
     ],
-    cta: "Démarrer l'essai",
+    cta: "Démarrer l'essai (30j gratuits)",
   },
   {
-    id: 'standard',
-    name: 'Standard',
+    id: 'business',
+    name: 'Business',
     price: '25 000',
     period: 'FCFA / mois',
-    description: 'Pour les agences en pleine croissance.',
-    quota: "Jusqu'à 100 locataires",
+    description: 'Pour les agences en pleine croissance avec un parc locatif actif.',
+    quota: "Jusqu'à 100 locataires max",
+    trialBadge: '30 jours d\'essai gratuit',
     features: [
-      'Tout le plan Essai',
+      'Tout le plan Starter',
+      "Jusqu'à 100 locataires gérés",
       'Scénarios de relance personnalisables',
-      'Rapports comptables exportables',
-      'Quittances PDF automatiques',
-      'Support prioritaire',
+      'Rapports comptables & exports Excel',
+      'Relances automatiques par lots',
+      'Support prioritaire 7j/7',
     ],
     highlighted: true,
-    cta: 'Choisir Standard',
+    cta: "Démarrer l'essai (30j gratuits)",
   },
   {
     id: 'pro',
-    name: 'Pro',
+    name: 'Plan Pro',
     price: '60 000',
     period: 'FCFA / mois',
-    description: 'Pour les agences multi-biens à fort volume.',
+    description: 'Pour les grands cabinets et patrimoines multi-biens à fort volume.',
     quota: 'Locataires illimités',
     features: [
-      'Tout le plan Standard',
-      'Multi-agences / multi-utilisateurs',
-      'Statistiques avancées',
-      'Accès API',
-      'Accompagnement dédié',
+      'Tout le plan Business',
+      'Locataires & logements illimités',
+      'Multi-agences & agents multiples',
+      'Statistiques de recouvrement avancées',
+      'Passerelles dédiées & accès API',
+      'Accompagnement & gestionnaire dédié',
     ],
-    cta: 'Choisir Pro',
+    cta: 'Choisir Plan Pro',
   },
 ];
 
@@ -146,9 +153,17 @@ export function PricingSection() {
                 </span>
               </div>
 
-              <span className="mt-3 inline-block w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                {plan.quota}
-              </span>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="inline-block w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {plan.quota}
+                </span>
+                {plan.trialBadge && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                    <Sparkles className="h-3 w-3" />
+                    {plan.trialBadge}
+                  </span>
+                )}
+              </div>
 
               <ul className="mt-6 flex-1 space-y-3">
                 {plan.features.map((feature) => (
@@ -175,13 +190,36 @@ export function PricingSection() {
           ))}
         </motion.div>
 
+        {/* Encadré explicatif Essai 30 Jours & Règle d'usage unique */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-12 rounded-2xl border border-primary/20 bg-card p-6 shadow-sm max-w-3xl mx-auto text-center space-y-2"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="h-3.5 w-3.5" />
+            Conditions Essai Gratuit 30 Jours
+          </div>
+          <p className="text-sm text-foreground/90 leading-relaxed font-medium">
+            Bénéficiez de <strong>30 jours d'essai 100% gratuit</strong> sur les forfaits <strong>15 000 FCFA</strong> (50 locataires) et <strong>25 000 FCFA</strong> (100 locataires), sans saisie de carte bancaire.
+          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            À l'échéance des 30 jours, la plateforme vous invite à activer votre forfait. Par la suite, chaque agence renouvelle son abonnement après chaque mois (cycle de 30 jours) directement par <strong>Wave</strong> ou <strong>Orange Money</strong> avec génération de quittance certifiée.
+            <span className="block mt-1 font-semibold text-amber-600 dark:text-[#E5B842]">
+              ⚠️ Règle d'usage : chaque agence a droit à un seul essai gratuit de 30 jours (non reconductible).
+            </span>
+          </p>
+        </motion.div>
+
         {/* Réassurance sous la grille */}
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.4, delay: 0.3 }}
-          className="mt-10 text-center text-sm text-muted-foreground"
+          className="mt-8 text-center text-sm text-muted-foreground"
         >
           Besoin d'un plan sur-mesure pour un grand groupe immobilier ?{' '}
           <a href="#" className="font-medium text-primary hover:underline">
