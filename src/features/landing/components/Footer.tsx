@@ -33,7 +33,7 @@ export function Footer() {
           <div>
             <a href="/" className="flex items-center gap-2 text-lg font-semibold">
               <span className="text-primary">KeurGui</span>
-              <span>Pay</span>
+              <span>Pays</span>
             </a>
             <p className="mt-3 max-w-xs text-sm text-muted-foreground">
               La plateforme SaaS d'automatisation des relances et du
