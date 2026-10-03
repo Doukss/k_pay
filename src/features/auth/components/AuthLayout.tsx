@@ -6,6 +6,7 @@ interface AuthLayoutProps {
   title: string;
   subtitle: string;
   children: ReactNode;
+  maxWidth?: string;
 }
 
 const containerVariants: Variants = {
@@ -49,7 +50,7 @@ function LogoMark({ light }: { light?: boolean }) {
   );
 }
 
-export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
+export function AuthLayout({ title, subtitle, children, maxWidth = 'max-w-sm' }: AuthLayoutProps) {
   return (
     <div className="grid min-h-screen md:grid-cols-2">
       {/* Panneau branding — masqué sur mobile */}
@@ -196,7 +197,7 @@ export function AuthLayout({ title, subtitle, children }: AuthLayoutProps) {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="w-full max-w-sm"
+          className={`w-full ${maxWidth}`}
         >
           {/* Logo mobile uniquement */}
           <motion.a

@@ -6,9 +6,14 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { registerSchema, type RegisterFormValues } from '../schemas/register.schema';
+import { useAuthStore } from '@/stores/authStore';
+import { useAgencyStore } from '@/stores/agencyStore';
 
 export function RegisterForm() {
   const navigate = useNavigate();
+  const { login } = useAuthStore();
+  const { startTrial } = useAgencyStore();
+
   const {
     register,
     handleSubmit,
@@ -18,10 +23,12 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (values: RegisterFormValues) => {
-    // TODO: brancher l'appel API réel (features/auth/api/auth.api.ts)
     await new Promise((resolve) => setTimeout(resolve, 800));
-    toast.success('Compte agence créé avec succès');
-    console.log(values);
+    login(values.email);
+    startTrial('starter');
+    toast.success('Compte agence créé avec succès', {
+      description: 'Votre essai gratuit de 30 jours est actif.',
+    });
     navigate('/agence/dashboard');
   };
 
@@ -107,13 +114,13 @@ export function RegisterForm() {
         )}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button type="submit" className="w-full bg-[#E5B842] hover:bg-[#cdaf35] text-black font-semibold" disabled={isSubmitting}>
         {isSubmitting ? 'Création...' : "Créer mon agence"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         Déjà un compte ?{' '}
-        <Link to="/connexion" className="font-medium text-primary hover:underline">
+        <Link to="/connexion" className="font-medium text-amber-600 dark:text-[#E5B842] hover:underline">
           Se connecter
         </Link>
       </p>

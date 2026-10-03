@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 
+const isSenegalesePhone = (val: string) => {
+  const cleaned = val.replace(/\s+/g, '');
+  if (isValidPhoneNumber(val, 'SN')) return true;
+  if (isValidPhoneNumber('+221' + cleaned, 'SN')) return true;
+  return /^(?:\+221|00221)?[78][05678]\d{7}$/.test(cleaned);
+};
+
 export const registerSchema = z
   .object({
     nomAgence: z.string().min(2, "Le nom de l'agence est requis"),
@@ -9,8 +16,8 @@ export const registerSchema = z
     telephone: z
       .string()
       .min(1, 'Le numéro de téléphone est requis')
-      .refine((val) => isValidPhoneNumber(val, 'SN'), {
-        message: 'Numéro de téléphone sénégalais invalide',
+      .refine(isSenegalesePhone, {
+        message: 'Numéro de téléphone sénégalais invalide (ex: 77 123 45 67)',
       }),
     password: z
       .string()

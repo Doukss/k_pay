@@ -162,17 +162,31 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main Container */}
       <div className="flex flex-1 flex-col overflow-hidden h-full">
         {/* Top Header Bar */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-white/5 bg-white/90 dark:bg-[#0D0E12]/90 px-4 md:px-8 backdrop-blur-md z-10 transition-colors duration-200">
-          <div className="flex items-center gap-3">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-white/5 bg-white/90 dark:bg-[#0D0E12]/90 px-3 sm:px-4 md:px-8 backdrop-blur-md z-10 transition-colors duration-200">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white md:hidden"
+              className="text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white md:hidden h-9 w-9"
               onClick={() => setIsSidebarOpen(true)}
-              aria-label="Ouvrir le menu"
+              aria-label="Ouvrir le menu profil"
             >
               <Menu className="h-5 w-5" />
             </Button>
+
+            {/* Mobile Brand Logo */}
+            <div 
+              className="flex items-center gap-1.5 md:hidden cursor-pointer"
+              onClick={() => navigate('/admin/dashboard')}
+            >
+              <span className="h-6 w-6 rounded-lg bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center font-bold text-white text-xs shadow-md">
+                SA
+              </span>
+              <span className="text-base font-bold tracking-tight">
+                <span className="text-[#E5B842]">KërGui</span>
+                <span className="text-slate-900 dark:text-white">Pay</span>
+              </span>
+            </div>
 
             <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-neutral-400">
               <span className="hover:text-slate-900 dark:hover:text-neutral-200 cursor-pointer" onClick={() => navigate('/admin/dashboard')}>
@@ -200,16 +214,58 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               className="bg-rose-50 dark:bg-black/30 border-rose-200 dark:border-white/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-neutral-800 text-xs gap-1.5 h-8 px-3 rounded-lg"
             >
               <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Diagnostics</span>
+              <span className="hidden sm:inline">Diagnostics</span>
             </Button>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 w-full max-w-none bg-slate-50 dark:bg-[#0A0A0C] text-slate-800 dark:text-neutral-200 transition-colors duration-200">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full max-w-none bg-slate-50 dark:bg-[#0A0A0C] text-slate-800 dark:text-neutral-200 transition-colors duration-200 pb-24 md:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav 
+        aria-label="Navigation mobile administration"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 dark:bg-[#0D0E12]/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-4 py-1.5 flex items-center justify-around shadow-[0_-4px_24px_rgba(0,0,0,0.12)] transition-colors duration-200"
+        style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
+      >
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname.startsWith(item.href);
+          return (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              className={cn(
+                'relative flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-all duration-150',
+                isActive
+                  ? 'text-rose-600 dark:text-rose-400 font-semibold'
+                  : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-200'
+              )}
+            >
+              <div className="relative flex items-center justify-center">
+                <div className={cn(
+                  'p-1.5 rounded-lg transition-colors',
+                  isActive ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-neutral-400'
+                )}>
+                  <Icon className={cn('h-5 w-5 transition-transform duration-150', isActive && 'scale-110')} />
+                </div>
+              </div>
+              <span className={cn(
+                'text-[10px] tracking-tight text-center mt-0.5',
+                isActive ? 'font-bold text-rose-600 dark:text-rose-400' : 'font-medium'
+              )}>
+                {item.label === 'Supervision Plateforme' ? 'Supervision' : item.label === 'Gestion Agences' ? 'Agences' : 'Monitoring'}
+              </span>
+              {isActive && (
+                <span className="absolute -top-1 h-0.5 w-8 rounded-full bg-rose-500" />
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
     </div>
   );
 }

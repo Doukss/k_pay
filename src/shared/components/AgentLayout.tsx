@@ -60,6 +60,15 @@ export function AgentLayout({ children }: AgentLayoutProps) {
     { label: 'Paramètres', href: '/agence/parametres', icon: Settings },
   ];
 
+  const MOBILE_NAV_ITEMS = [
+    { label: 'Accueil', href: '/agence/dashboard', icon: LayoutDashboard },
+    { label: 'Locataires', href: '/agence/locataires', icon: Users, badge: locataires.length },
+    { label: 'Loyers', href: '/agence/encaissements', icon: CreditCard },
+    { label: 'Relances', href: '/agence/relances', icon: Send, badge: lateCount > 0 ? lateCount : undefined, badgeColor: 'bg-rose-500 text-white' },
+    { label: 'Notifs', href: '/agence/notifications', icon: Bell, badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined, badgeColor: 'bg-[#E5B842] text-black font-bold' },
+    { label: 'Réglages', href: '/agence/parametres', icon: Settings },
+  ];
+
   // Derive breadcrumb text
   const currentNav = NAV_ITEMS.find((item) => location.pathname.startsWith(item.href)) || NAV_ITEMS[0];
 
@@ -244,19 +253,34 @@ export function AgentLayout({ children }: AgentLayoutProps) {
       <div className="flex flex-1 flex-col overflow-hidden h-full">
         {/* Top Header Bar for Desktop & Mobile */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 dark:border-white/5 bg-white/90 dark:bg-[#0E0F14]/90 px-4 md:px-8 backdrop-blur-md z-10 transition-colors duration-200">
-          {/* Left: Mobile hamburger & Breadcrumbs */}
-          <div className="flex items-center gap-3">
+          {/* Left: Mobile Brand & Desktop Breadcrumbs */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white md:hidden"
+              className="text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white md:hidden h-9 w-9"
               onClick={() => setIsSidebarOpen(true)}
-              aria-label="Ouvrir le menu"
+              aria-label="Ouvrir le menu profil"
             >
               <Menu className="h-5 w-5" />
             </Button>
 
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-neutral-400">
+            {/* Mobile Brand Logo */}
+            <div 
+              className="flex items-center gap-1.5 md:hidden cursor-pointer" 
+              onClick={() => navigate('/agence/dashboard')}
+            >
+              <span className="h-6 w-6 rounded-lg bg-gradient-to-br from-[#E5B842] to-[#B38926] flex items-center justify-center font-bold text-black text-xs shadow-sm">
+                K
+              </span>
+              <span className="text-base font-bold tracking-tight">
+                <span className="text-[#E5B842]">KërGui</span>
+                <span className="text-slate-900 dark:text-white">Pay</span>
+              </span>
+            </div>
+
+            {/* Desktop Breadcrumbs */}
+            <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 dark:text-neutral-400">
               <span className="hover:text-slate-900 dark:hover:text-neutral-200 cursor-pointer" onClick={() => navigate('/agence/dashboard')}>
                 Workspace Agence
               </span>
@@ -502,10 +526,60 @@ export function AgentLayout({ children }: AgentLayoutProps) {
         )}
 
         {/* Page Content Viewport */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 w-full max-w-none">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full max-w-none pb-24 md:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav 
+        aria-label="Navigation principale mobile"
+        className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 dark:bg-[#0E0F14]/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-1 py-1.5 flex items-center justify-around shadow-[0_-4px_24px_rgba(0,0,0,0.12)] transition-colors duration-200"
+        style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
+      >
+        {MOBILE_NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname.startsWith(item.href);
+          return (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              className={cn(
+                'relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all duration-150 min-w-0 group',
+                isActive
+                  ? 'text-amber-600 dark:text-[#E5B842]'
+                  : 'text-slate-500 dark:text-neutral-400 hover:text-slate-900 dark:hover:text-neutral-200'
+              )}
+            >
+              <div className="relative flex items-center justify-center">
+                <div className={cn(
+                  'p-1 rounded-lg transition-colors',
+                  isActive ? 'bg-amber-500/15 dark:bg-[#E5B842]/15 text-amber-600 dark:text-[#E5B842]' : 'text-slate-500 dark:text-neutral-400'
+                )}>
+                  <Icon className={cn('h-4.5 w-4.5 transition-transform duration-150', isActive && 'scale-110')} />
+                </div>
+                {item.badge !== undefined && (
+                  <span className={cn(
+                    'absolute -top-1 -right-1.5 min-w-[15px] h-3.5 px-1 rounded-full text-[8px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-[#0E0F14] leading-none',
+                    item.badgeColor || 'bg-amber-500 text-black dark:bg-[#E5B842] dark:text-black font-mono'
+                  )}>
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+              <span className={cn(
+                'text-[9.5px] tracking-tight truncate max-w-[56px] text-center mt-0.5 leading-tight',
+                isActive ? 'font-bold text-amber-600 dark:text-[#E5B842]' : 'font-medium'
+              )}>
+                {item.label}
+              </span>
+              {isActive && (
+                <span className="absolute -top-1 h-0.5 w-5 rounded-full bg-amber-500 dark:bg-[#E5B842]" />
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
 
       {/* Subscription Payment & Upgrade Modal */}
       <SubscriptionModal
