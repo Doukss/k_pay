@@ -22,7 +22,6 @@ export function LoginForm() {
 
   const onSubmit = async (values: LoginFormValues) => {
     await new Promise((resolve) => setTimeout(resolve, 600));
-    
     login(values.email);
 
     if (values.email.toLowerCase() === 'admin@keurguipay.sn') {

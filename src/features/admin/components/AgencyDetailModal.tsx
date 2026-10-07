@@ -4,7 +4,13 @@ import {
   User, 
   MapPin, 
   CheckCircle2, 
-  Smartphone
+  Smartphone,
+  CreditCard,
+  AlertTriangle,
+  Sparkles,
+  Calendar,
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -16,15 +22,17 @@ interface AgencyDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onToggleStatus: (agencyId: number) => void;
+  onRenewSubscription?: (agencyId: number) => void;
 }
 
 export function AgencyDetailModal({
   agency,
   isOpen,
   onClose,
-  onToggleStatus
+  onToggleStatus,
+  onRenewSubscription,
 }: AgencyDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'apercu' | 'passerelles' | 'locataires'>('apercu');
+  const [activeTab, setActiveTab] = useState<'apercu' | 'abonnement' | 'passerelles' | 'locataires'>('apercu');
 
   if (!isOpen || !agency) return null;
 
@@ -36,6 +44,16 @@ export function AgencyDetailModal({
     const text = encodeURIComponent(`Bonjour ${agency.responsable}, nous vous contactons depuis l'administration de KeurGui Pay au sujet de votre agence "${agency.name}".`);
     window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
     toast.success(`Ouverture de la discussion WhatsApp avec ${agency.responsable}`);
+  };
+
+  const handleContactWhatsAppRenew = () => {
+    const rawDigits = agency.phone.replace(/\D/g, '');
+    const cleanPhone = rawDigits.startsWith('221') ? rawDigits : `221${rawDigits.slice(-9)}`;
+    const text = encodeURIComponent(
+      `Bonjour ${agency.responsable}, administration KeurGui Pay. L'abonnement mensuel de votre agence "${agency.name}" (${agency.plan} - ${agency.subscriptionPrice.toLocaleString()} FCFA/mois) est arrivé à terme le ${agency.nextRenewalDate}. Merci de procéder au renouvellement via Wave ou Orange Money pour maintenir l'encaissement actif.`
+    );
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+    toast.success(`Relance d'abonnement préparée pour ${agency.responsable}`);
   };
 
   return (
@@ -54,7 +72,22 @@ export function AgencyDetailModal({
                 <div className="flex items-center gap-2 flex-wrap">
                   <CardTitle className="text-xl font-bold text-white">{agency.name}</CardTitle>
                   
-                  {/* Status Badge */}
+                  {/* Subscription Compliance Badge */}
+                  {agency.subscriptionStatus === 'en_regle' ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                      <CheckCircle2 className="h-3 w-3" /> Abonnement En règle
+                    </span>
+                  ) : agency.subscriptionStatus === 'essai' ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#E5B842] bg-[#E5B842]/10 border border-[#E5B842]/20 px-2.5 py-0.5 rounded-full">
+                      <Sparkles className="h-3 w-3" /> Essai 30j ({agency.trialDaysRemaining ?? 30}j)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full animate-pulse">
+                      <AlertTriangle className="h-3 w-3" /> Renouvellement requis
+                    </span>
+                  )}
+
+                  {/* Agency Status Badge */}
                   {agency.status === 'active' ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Actif
@@ -69,7 +102,7 @@ export function AgencyDetailModal({
                   <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
                     agency.plan === 'Entreprise' 
                       ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
-                      : agency.plan === 'Plan Pro' 
+                      : agency.plan === 'Plan Pro' || agency.plan === 'Business'
                       ? 'bg-[#E5B842]/10 text-[#E5B842] border-[#E5B842]/20' 
                       : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
                   }`}>
@@ -105,6 +138,21 @@ export function AgencyDetailModal({
               Vue d'ensemble
             </button>
             <button
+              onClick={() => setActiveTab('abonnement')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
+                activeTab === 'abonnement' 
+                  ? 'bg-rose-500 text-white shadow-md' 
+                  : agency.subscriptionStatus === 'retard'
+                  ? 'text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <CreditCard className="h-3.5 w-3.5" /> Abonnement & Échéance
+              {agency.subscriptionStatus === 'retard' && (
+                <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('passerelles')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 ${
                 activeTab === 'passerelles' 
@@ -131,6 +179,43 @@ export function AgencyDetailModal({
         <div className="p-5 overflow-y-auto space-y-5 flex-1">
           {activeTab === 'apercu' && (
             <div className="space-y-5 animate-in fade-in duration-150">
+              {/* Subscription Status Highlight Banner */}
+              <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+                agency.subscriptionStatus === 'en_regle'
+                  ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300'
+                  : agency.subscriptionStatus === 'essai'
+                  ? 'bg-[#E5B842]/10 border-[#E5B842]/20 text-[#E5B842]'
+                  : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
+              }`}>
+                <div className="flex items-center gap-2.5">
+                  {agency.subscriptionStatus === 'en_regle' ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                  ) : agency.subscriptionStatus === 'essai' ? (
+                    <Sparkles className="h-4 w-4 text-[#E5B842] shrink-0" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 animate-pulse" />
+                  )}
+                  <div>
+                    <span className="font-bold text-white">
+                      {agency.subscriptionStatus === 'en_regle' && 'Abonnement Mensuel En Règle'}
+                      {agency.subscriptionStatus === 'essai' && `Essai Gratuit 30 Jours Actif (${agency.trialDaysRemaining ?? 30} jours restants)`}
+                      {agency.subscriptionStatus === 'retard' && 'Renouvellement Mensuel Requis (Échéance Dépassée)'}
+                    </span>
+                    <span className="text-neutral-400 ml-2">
+                      · {agency.subscriptionPrice.toLocaleString()} FCFA/mois (Forfait {agency.plan}) · Échéance : {agency.nextRenewalDate}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('abonnement')}
+                  className="text-xs font-semibold underline text-neutral-300 hover:text-white shrink-0"
+                >
+                  Gérer l'abonnement →
+                </button>
+              </div>
+
               {/* Top 4 KPI Metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
@@ -207,6 +292,121 @@ export function AgencyDetailModal({
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'abonnement' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Compliance status banner */}
+              <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
+                agency.subscriptionStatus === 'en_regle'
+                  ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300'
+                  : agency.subscriptionStatus === 'essai'
+                  ? 'bg-[#E5B842]/10 border-[#E5B842]/20 text-[#E5B842]'
+                  : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
+              }`}>
+                <div className="flex items-start gap-3">
+                  <div className={`p-2.5 rounded-xl shrink-0 ${
+                    agency.subscriptionStatus === 'en_regle'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : agency.subscriptionStatus === 'essai'
+                      ? 'bg-[#E5B842]/20 text-[#E5B842]'
+                      : 'bg-rose-500/20 text-rose-400 animate-pulse'
+                  }`}>
+                    {agency.subscriptionStatus === 'en_regle' ? (
+                      <CheckCircle2 className="h-6 w-6" />
+                    ) : agency.subscriptionStatus === 'essai' ? (
+                      <Sparkles className="h-6 w-6" />
+                    ) : (
+                      <AlertTriangle className="h-6 w-6" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      {agency.subscriptionStatus === 'en_regle' && 'Abonnement En Règle (À jour)'}
+                      {agency.subscriptionStatus === 'essai' && `Période d'Essai Gratuite (30 jours)`}
+                      {agency.subscriptionStatus === 'retard' && 'Renouvellement Mensuel Requis (Échéance Échue)'}
+                    </h4>
+                    <p className="text-xs text-neutral-300 mt-1">
+                      {agency.subscriptionStatus === 'en_regle' && 
+                        `L'agence a réglé son forfait mensuel de ${agency.subscriptionPrice.toLocaleString()} FCFA. Toutes les automatisations de relances et d'encaissements sont actives.`}
+                      {agency.subscriptionStatus === 'essai' && 
+                        `Il reste ${agency.trialDaysRemaining ?? 30} jours d'essai gratuit sur les 30 offerts. À l'issue, un premier paiement de ${agency.subscriptionPrice.toLocaleString()} FCFA sera requis pour continuer.`}
+                      {agency.subscriptionStatus === 'retard' && 
+                        `L'échéance mensuelle de ${agency.subscriptionPrice.toLocaleString()} FCFA est dépassée depuis le ${agency.nextRenewalDate}. Les services de relance automatique sont temporairement en attente.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Direct Action for Admin */}
+                <div className="flex sm:flex-col items-center gap-2 shrink-0">
+                  {agency.subscriptionStatus !== 'en_regle' ? (
+                    <Button
+                      type="button"
+                      onClick={() => onRenewSubscription?.(agency.id)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-3 w-full gap-1.5 shadow-sm"
+                    >
+                      <Check className="h-3.5 w-3.5" /> Valider Paiement (+30j)
+                    </Button>
+                  ) : (
+                    <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
+                      Cotisation validée
+                    </span>
+                  )}
+                  {agency.subscriptionStatus === 'retard' && (
+                    <Button
+                      type="button"
+                      onClick={handleContactWhatsAppRenew}
+                      className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs h-9 px-3 w-full gap-1.5 shadow-sm"
+                    >
+                      <Smartphone className="h-3.5 w-3.5" /> Relancer WhatsApp
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Subscription Details Grid */}
+              <div className="grid sm:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <p className="text-[11px] text-neutral-400 font-medium">Forfait Souscrit</p>
+                  <p className="text-base font-bold text-white flex items-center justify-between">
+                    <span>{agency.plan}</span>
+                    <span className="text-xs font-mono text-[#E5B842]">{agency.subscriptionPrice.toLocaleString()} F/m</span>
+                  </p>
+                  <p className="text-[10px] text-neutral-500">Plafond : {agency.quota} locataires</p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <p className="text-[11px] text-neutral-400 font-medium">Prochaine Échéance</p>
+                  <p className="text-base font-bold font-mono text-white flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 text-rose-400" />
+                    {agency.nextRenewalDate}
+                  </p>
+                  <p className="text-[10px] text-neutral-500">Renouvellement chaque mois</p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <p className="text-[11px] text-neutral-400 font-medium">Dernier Règlement Enregistré</p>
+                  <p className="text-base font-bold font-mono text-white">
+                    {agency.lastPaymentDate || 'Période d\'essai en cours'}
+                  </p>
+                  <p className="text-[10px] text-neutral-500 flex items-center gap-1">
+                    Passerelle : <span className="font-semibold text-neutral-300">{agency.paymentGateway || (agency.subscriptionStatus === 'essai' ? 'Essai gratuit 30j' : 'Mobile Money')}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Subscription Rules Notice */}
+              <div className="p-4 rounded-xl bg-black/30 border border-white/5 text-xs text-neutral-400 space-y-2">
+                <h5 className="font-semibold text-white flex items-center gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5 text-neutral-400" /> Règles de Conformité des Abonnements
+                </h5>
+                <ul className="list-disc list-inside space-y-1 text-[11px] text-neutral-400">
+                  <li>Chaque agence cliente doit renouveler son forfait tous les mois pour maintenir l'encaissement actif.</li>
+                  <li>L'essai gratuit de 30 jours est strictement réservé aux 30 premiers jours d'adhésion : une agence ayant déjà consommé son essai ne peut plus en bénéficier.</li>
+                  <li>En tant que Super Administrateur, vous pouvez à tout moment enregistrer une régularisation de paiement manuel ou relancer l'agence par WhatsApp.</li>
+                </ul>
               </div>
             </div>
           )}
@@ -350,14 +550,23 @@ export function AgencyDetailModal({
 
         {/* Modal Actions Footer */}
         <div className="p-4 border-t border-white/5 bg-black/30 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               type="button"
               onClick={handleContactWhatsApp}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-3 gap-1.5 shadow-sm w-full sm:w-auto"
             >
-              <Smartphone className="h-3.5 w-3.5" /> Contacter le gérant (WhatsApp)
+              <Smartphone className="h-3.5 w-3.5" /> WhatsApp
             </Button>
+            {agency.subscriptionStatus !== 'en_regle' && onRenewSubscription && (
+              <Button
+                type="button"
+                onClick={() => onRenewSubscription(agency.id)}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs h-9 px-3 gap-1.5 shadow-sm w-full sm:w-auto"
+              >
+                <Check className="h-3.5 w-3.5" /> Régulariser Abonnement (+30j)
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -367,7 +576,7 @@ export function AgencyDetailModal({
                 : "bg-emerald-950/20 border-emerald-500/20 text-emerald-400 hover:bg-emerald-950/40 text-xs h-9 px-3 w-full sm:w-auto"
               }
             >
-              {agency.status === 'active' ? 'Suspendre l\'agence' : 'Réactiver l\'agence'}
+              {agency.status === 'active' ? 'Suspendre' : 'Réactiver'}
             </Button>
           </div>
 

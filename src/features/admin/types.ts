@@ -1,5 +1,6 @@
-export type AgencyPlan = 'Gratuit' | 'Plan Pro' | 'Entreprise';
+export type AgencyPlan = 'Starter' | 'Business' | 'Plan Pro' | 'Entreprise' | 'Gratuit';
 export type AgencyStatus = 'active' | 'suspended' | 'pending';
+export type SubscriptionStatus = 'en_regle' | 'essai' | 'retard';
 
 export interface AgencyTenantItem {
   id: number;
@@ -40,6 +41,16 @@ export interface AgencyDetail {
   ninea: string;
   plan: AgencyPlan;
   status: AgencyStatus;
+  
+  // Subscription compliance & billing
+  subscriptionStatus: SubscriptionStatus; // 'en_regle' (payé), 'essai' (30j), 'retard' (échéance dépassée)
+  subscriptionPrice: number; // e.g. 15000, 25000, 60000
+  nextRenewalDate: string; // e.g. '15 Novembre 2026'
+  lastPaymentDate?: string; // e.g. '15 Octobre 2026'
+  paymentGateway?: 'Wave' | 'Orange Money';
+  trialDaysRemaining?: number; // For agencies in 'essai'
+  autoRenew?: boolean;
+
   locataires: number;
   quota: number;
   volumeMensuel: number;

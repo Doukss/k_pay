@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { 
@@ -6,11 +7,14 @@ import {
   Building, 
   Eye, 
   CheckCircle2, 
-  TrendingUp, 
-  DollarSign, 
   Plus,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
+  Sparkles,
+  Check,
+  Smartphone,
+  Calendar
 } from 'lucide-react';
 import { AgencyDetailModal } from '../components/AgencyDetailModal';
 import { AddAgencyModal } from '../components/AddAgencyModal';
@@ -30,6 +34,12 @@ const initialAgencesData: AgencyDetail[] = [
     ninea: '00482918293-2B',
     plan: 'Plan Pro',
     status: 'active',
+    subscriptionStatus: 'en_regle',
+    subscriptionPrice: 25000,
+    nextRenewalDate: '12 Novembre 2026',
+    lastPaymentDate: '12 Octobre 2026',
+    paymentGateway: 'Wave',
+    autoRenew: true,
     locataires: 42,
     quota: 100,
     volumeMensuel: 2450000,
@@ -59,10 +69,16 @@ const initialAgencesData: AgencyDetail[] = [
     city: 'Saint-Louis (Île Nord)',
     address: 'Rue Blanchot, Saint-Louis',
     ninea: '00728192837-1A',
-    plan: 'Gratuit',
+    plan: 'Starter',
     status: 'active',
+    subscriptionStatus: 'retard',
+    subscriptionPrice: 15000,
+    nextRenewalDate: '18 Septembre 2026',
+    lastPaymentDate: '18 Août 2026',
+    paymentGateway: 'Orange Money',
+    autoRenew: false,
     locataires: 4,
-    quota: 5,
+    quota: 50,
     volumeMensuel: 320000,
     commissionRate: 2.0,
     commissionsTotal: 6400,
@@ -89,8 +105,14 @@ const initialAgencesData: AgencyDetail[] = [
     city: 'Dakar (Point E & Mermoz)',
     address: 'Avenue Cheikh Anta Diop, Dakar',
     ninea: '00192837465-3C',
-    plan: 'Plan Pro',
+    plan: 'Business',
     status: 'active',
+    subscriptionStatus: 'en_regle',
+    subscriptionPrice: 25000,
+    nextRenewalDate: '02 Novembre 2026',
+    lastPaymentDate: '02 Octobre 2026',
+    paymentGateway: 'Wave',
+    autoRenew: true,
     locataires: 89,
     quota: 100,
     volumeMensuel: 9800000,
@@ -120,6 +142,12 @@ const initialAgencesData: AgencyDetail[] = [
     ninea: '00384729104-4D',
     plan: 'Entreprise',
     status: 'active',
+    subscriptionStatus: 'en_regle',
+    subscriptionPrice: 60000,
+    nextRenewalDate: '10 Novembre 2026',
+    lastPaymentDate: '10 Octobre 2026',
+    paymentGateway: 'Wave',
+    autoRenew: true,
     locataires: 245,
     quota: 500,
     volumeMensuel: 42100000,
@@ -147,10 +175,16 @@ const initialAgencesData: AgencyDetail[] = [
     city: 'Thiès (Centre-ville)',
     address: 'Avenue Léopold Sédar Senghor, Thiès',
     ninea: '00572910482-5E',
-    plan: 'Gratuit',
+    plan: 'Starter',
     status: 'suspended',
+    subscriptionStatus: 'retard',
+    subscriptionPrice: 15000,
+    nextRenewalDate: '15 Juillet 2026',
+    lastPaymentDate: '15 Juin 2026',
+    paymentGateway: 'Orange Money',
+    autoRenew: false,
     locataires: 2,
-    quota: 5,
+    quota: 50,
     volumeMensuel: 150000,
     commissionRate: 2.0,
     commissionsTotal: 3000,
@@ -175,8 +209,14 @@ const initialAgencesData: AgencyDetail[] = [
     city: 'Mbour (Saly Portudal)',
     address: 'Route Touristique de Saly, Mbour',
     ninea: '00681928374-6F',
-    plan: 'Plan Pro',
+    plan: 'Business',
     status: 'active',
+    subscriptionStatus: 'en_regle',
+    subscriptionPrice: 25000,
+    nextRenewalDate: '04 Novembre 2026',
+    lastPaymentDate: '04 Octobre 2026',
+    paymentGateway: 'Wave',
+    autoRenew: true,
     locataires: 64,
     quota: 100,
     volumeMensuel: 7800000,
@@ -204,10 +244,15 @@ const initialAgencesData: AgencyDetail[] = [
     city: 'Ziguinchor (Escale)',
     address: 'Rue du Général de Gaulle, Ziguinchor',
     ninea: '00293847102-7G',
-    plan: 'Gratuit',
+    plan: 'Starter',
     status: 'active',
+    subscriptionStatus: 'essai',
+    subscriptionPrice: 15000,
+    nextRenewalDate: '22 Octobre 2026',
+    trialDaysRemaining: 18,
+    autoRenew: true,
     locataires: 3,
-    quota: 5,
+    quota: 50,
     volumeMensuel: 210000,
     commissionRate: 2.0,
     commissionsTotal: 4200,
@@ -232,8 +277,13 @@ const initialAgencesData: AgencyDetail[] = [
     city: 'Touba / Mbacké',
     address: 'Boulevard 28, Touba',
     ninea: '00918273645-8H',
-    plan: 'Entreprise',
+    plan: 'Business',
     status: 'active',
+    subscriptionStatus: 'essai',
+    subscriptionPrice: 25000,
+    nextRenewalDate: '12 Octobre 2026',
+    trialDaysRemaining: 8,
+    autoRenew: true,
     locataires: 120,
     quota: 500,
     volumeMensuel: 14500000,
@@ -253,12 +303,22 @@ const initialAgencesData: AgencyDetail[] = [
 ];
 
 export default function TenantsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlFilter = searchParams.get('filter');
+
   const [agences, setAgences] = useState<AgencyDetail[]>(initialAgencesData);
   const [search, setSearch] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState<string>('all');
+  const [selectedFilter, setSelectedFilter] = useState<string>(urlFilter || 'all');
   const [selectedAgency, setSelectedAgency] = useState<AgencyDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Sync if URL search params change
+  useEffect(() => {
+    if (urlFilter) {
+      setSelectedFilter(urlFilter);
+    }
+  }, [urlFilter]);
 
   // Pagination (5 items per page)
   const [currentPage, setCurrentPage] = useState(1);
@@ -266,9 +326,9 @@ export default function TenantsPage() {
 
   // Platform Network Calculations
   const totalAgences = agences.length;
-  const activeAgences = agences.filter((a) => a.status === 'active').length;
-  const totalVolumeReseau = agences.reduce((sum, a) => sum + a.volumeMensuel, 0);
-  const totalCommissions = agences.reduce((sum, a) => sum + a.commissionsTotal, 0);
+  const enRegleCount = agences.filter((a) => a.subscriptionStatus === 'en_regle').length;
+  const trialCount = agences.filter((a) => a.subscriptionStatus === 'essai').length;
+  const retardCount = agences.filter((a) => a.subscriptionStatus === 'retard').length;
 
   // Filtered Agences
   const filteredAgences = useMemo(() => {
@@ -279,15 +339,21 @@ export default function TenantsPage() {
         ag.city.toLowerCase().includes(search.toLowerCase()) ||
         ag.phone.toLowerCase().includes(search.toLowerCase());
       
-      const matchesPlan = 
-        selectedPlan === 'all' ||
-        (selectedPlan === 'active' && ag.status === 'active') ||
-        (selectedPlan === 'suspended' && ag.status === 'suspended') ||
-        ag.plan === selectedPlan;
+      let matchesFilter = true;
+      if (selectedFilter === 'all') matchesFilter = true;
+      else if (selectedFilter === 'en_regle') matchesFilter = ag.subscriptionStatus === 'en_regle';
+      else if (selectedFilter === 'essai') matchesFilter = ag.subscriptionStatus === 'essai';
+      else if (selectedFilter === 'retard') matchesFilter = ag.subscriptionStatus === 'retard';
+      else if (selectedFilter === 'suspended') matchesFilter = ag.status === 'suspended';
+      else if (selectedFilter === 'active') matchesFilter = ag.status === 'active';
+      else if (selectedFilter === 'Starter') matchesFilter = ag.plan === 'Starter';
+      else if (selectedFilter === 'Business') matchesFilter = ag.plan === 'Business';
+      else if (selectedFilter === 'Entreprise') matchesFilter = ag.plan === 'Entreprise' || ag.plan === 'Plan Pro';
+      else matchesFilter = ag.plan === selectedFilter;
 
-      return matchesSearch && matchesPlan;
+      return matchesSearch && matchesFilter;
     });
-  }, [agences, search, selectedPlan]);
+  }, [agences, search, selectedFilter]);
 
   // Paginated Slices
   const totalPages = Math.ceil(filteredAgences.length / itemsPerPage) || 1;
@@ -301,9 +367,15 @@ export default function TenantsPage() {
     setCurrentPage(1);
   };
 
-  const handlePlanChange = (plan: string) => {
-    setSelectedPlan(plan);
+  const handleFilterChange = (filter: string) => {
+    setSelectedFilter(filter);
     setCurrentPage(1);
+    if (filter === 'all') {
+      searchParams.delete('filter');
+      setSearchParams(searchParams);
+    } else {
+      setSearchParams({ filter });
+    }
   };
 
   const handleOpenDetail = (agency: AgencyDetail) => {
@@ -332,6 +404,56 @@ export default function TenantsPage() {
     );
   };
 
+  const handleRenewSubscription = (agencyId: number) => {
+    setAgences((prev) =>
+      prev.map((a) => {
+        if (a.id === agencyId) {
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + 30);
+          const formattedRenewal = new Intl.DateTimeFormat('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }).format(nextDate);
+          const today = new Intl.DateTimeFormat('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }).format(new Date());
+
+          const updated: AgencyDetail = {
+            ...a,
+            subscriptionStatus: 'en_regle',
+            lastPaymentDate: today,
+            paymentGateway: a.paymentGateway || 'Wave',
+            nextRenewalDate: formattedRenewal,
+            trialDaysRemaining: undefined,
+          };
+
+          toast.success(
+            `Abonnement de l'agence "${a.name}" régularisé (+30 jours jusqu'au ${formattedRenewal})`
+          );
+
+          if (selectedAgency?.id === agencyId) {
+            setSelectedAgency(updated);
+          }
+          return updated;
+        }
+        return a;
+      })
+    );
+  };
+
+  const handleContactWhatsAppRenew = (agency: AgencyDetail) => {
+    const rawDigits = agency.phone.replace(/\D/g, '');
+    const cleanPhone = rawDigits.startsWith('221') ? rawDigits : `221${rawDigits.slice(-9)}`;
+    const text = encodeURIComponent(
+      `Bonjour ${agency.responsable}, administration de KeurGui Pay. Votre abonnement mensuel au forfait ${agency.plan} (${agency.subscriptionPrice.toLocaleString()} FCFA/mois) pour l'agence "${agency.name}" est arrivé à échéance (${agency.nextRenewalDate}). Merci de procéder au renouvellement via Wave ou Orange Money pour maintenir l'encaissement actif.`
+    );
+    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
+    toast.success(`Relance d'abonnement WhatsApp préparée pour ${agency.responsable}`);
+  };
+
   const handleAddAgency = (newAgency: AgencyDetail) => {
     setAgences((prev) => [newAgency, ...prev]);
     setCurrentPage(1);
@@ -352,7 +474,7 @@ export default function TenantsPage() {
             Gestion des Agences Partenaires
           </h1>
           <p className="text-sm text-neutral-400 mt-1">
-            Supervisez le parc d'agences clientes, leurs responsables et accédez aux audits complets.
+            Supervisez le parc d'agences clientes, contrôlez la conformité des abonnements mensuels et accédez aux audits.
           </p>
         </div>
 
@@ -366,89 +488,132 @@ export default function TenantsPage() {
         </div>
       </div>
 
-      {/* Network Overview KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+      {/* Subscription Compliance KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Agencies */}
+        <div 
+          onClick={() => handleFilterChange('all')}
+          className={`bg-[#121318] border rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all hover:border-white/20 ${
+            selectedFilter === 'all' ? 'border-rose-500/40 ring-1 ring-rose-500/30' : 'border-white/5'
+          }`}
+        >
           <div>
             <p className="text-xs text-neutral-400 font-medium">Total Agences</p>
             <p className="text-2xl font-bold font-mono text-white mt-1">{totalAgences}</p>
+            <p className="text-[11px] text-neutral-500 mt-0.5">Parc national KeurGui Pay</p>
           </div>
           <div className="h-10 w-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
             <Building className="h-5 w-5" />
           </div>
         </div>
 
-        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+        {/* En Règle (Payé) */}
+        <div 
+          onClick={() => handleFilterChange('en_regle')}
+          className={`bg-[#121318] border rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all hover:border-emerald-500/40 ${
+            selectedFilter === 'en_regle' ? 'border-emerald-500 ring-1 ring-emerald-500/30' : 'border-white/5'
+          }`}
+        >
           <div>
-            <p className="text-xs text-neutral-400 font-medium">Agences Actives</p>
-            <p className="text-2xl font-bold font-mono text-emerald-400 mt-1">{activeAgences}</p>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <p className="text-xs text-emerald-400 font-semibold">En Règle (Payé)</p>
+            </div>
+            <p className="text-2xl font-bold font-mono text-emerald-400 mt-1">{enRegleCount}</p>
+            <p className="text-[11px] text-neutral-400 mt-0.5">Cotisation mensuelle à jour</p>
           </div>
           <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
             <CheckCircle2 className="h-5 w-5" />
           </div>
         </div>
 
-        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+        {/* Essai 30 Jours */}
+        <div 
+          onClick={() => handleFilterChange('essai')}
+          className={`bg-[#121318] border rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all hover:border-[#E5B842]/40 ${
+            selectedFilter === 'essai' ? 'border-[#E5B842] ring-1 ring-[#E5B842]/30' : 'border-white/5'
+          }`}
+        >
           <div>
-            <p className="text-xs text-neutral-400 font-medium">Volume Total Réseau</p>
-            <p className="text-2xl font-bold font-mono text-[#E5B842] mt-1">{totalVolumeReseau.toLocaleString()} F</p>
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-[#E5B842]" />
+              <p className="text-xs text-[#E5B842] font-semibold">Essai 30 Jours</p>
+            </div>
+            <p className="text-2xl font-bold font-mono text-[#E5B842] mt-1">{trialCount}</p>
+            <p className="text-[11px] text-neutral-400 mt-0.5">Période offerte en cours</p>
           </div>
           <div className="h-10 w-10 rounded-lg bg-[#E5B842]/10 border border-[#E5B842]/20 flex items-center justify-center text-[#E5B842]">
-            <TrendingUp className="h-5 w-5" />
+            <Sparkles className="h-5 w-5" />
           </div>
         </div>
 
-        <div className="bg-[#121318] border border-white/5 rounded-xl p-4 flex items-center justify-between">
+        {/* Renouvellement Requis / En Retard */}
+        <div 
+          onClick={() => handleFilterChange('retard')}
+          className={`bg-[#121318] border rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all hover:border-rose-500/40 ${
+            selectedFilter === 'retard' ? 'border-rose-500 ring-1 ring-rose-500/30' : 'border-white/5'
+          }`}
+        >
           <div>
-            <p className="text-xs text-neutral-400 font-medium">Commissions Générées</p>
-            <p className="text-2xl font-bold font-mono text-rose-400 mt-1">{totalCommissions.toLocaleString()} F</p>
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="h-3 w-3 text-rose-400 animate-pulse" />
+              <p className="text-xs text-rose-400 font-semibold">Renouvellement Dû</p>
+            </div>
+            <p className="text-2xl font-bold font-mono text-rose-400 mt-1">{retardCount}</p>
+            <p className="text-[11px] text-rose-300/80 mt-0.5 font-medium">Échéance échue · À régulariser</p>
           </div>
           <div className="h-10 w-10 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-            <DollarSign className="h-5 w-5" />
+            <AlertTriangle className="h-5 w-5" />
           </div>
         </div>
       </div>
 
-      {/* Main Table Card (Streamlined & Clean) */}
+      {/* Main Table Card */}
       <Card className="bg-[#121318] border-white/5 text-white shadow-xl">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
           <div>
             <CardTitle className="text-lg font-bold">Portefeuille des Agences Immobilières</CardTitle>
             <CardDescription className="text-neutral-400 text-xs mt-0.5">
-              Vue synthétique épurée. Les volumes financiers, NINEA et passerelles sont consultables dans « Détails ».
+              Visualisez instantanément quelles agences sont en règle, en période d'essai ou en retard de paiement.
             </CardDescription>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Filter Tabs */}
-            <div className="flex items-center rounded-lg bg-black/40 border border-white/5 p-1 text-xs">
+            <div className="flex flex-wrap items-center rounded-lg bg-black/40 border border-white/5 p-1 text-xs gap-1">
               <button
-                onClick={() => handlePlanChange('all')}
-                className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'all' ? 'bg-rose-600 text-white font-semibold' : 'text-neutral-400 hover:text-white'}`}
+                onClick={() => handleFilterChange('all')}
+                className={`px-2.5 py-1 rounded-md transition-all ${selectedFilter === 'all' ? 'bg-rose-600 text-white font-semibold' : 'text-neutral-400 hover:text-white'}`}
               >
                 Toutes ({totalAgences})
               </button>
               <button
-                onClick={() => handlePlanChange('Plan Pro')}
-                className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'Plan Pro' ? 'bg-[#E5B842] text-black font-semibold' : 'text-neutral-400 hover:text-white'}`}
+                onClick={() => handleFilterChange('en_regle')}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                  selectedFilter === 'en_regle' ? 'bg-emerald-600 text-white font-semibold shadow-sm' : 'text-emerald-400 hover:text-emerald-300'
+                }`}
               >
-                Plan Pro
+                <CheckCircle2 className="h-3 w-3" /> En règle ({enRegleCount})
               </button>
               <button
-                onClick={() => handlePlanChange('Entreprise')}
-                className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'Entreprise' ? 'bg-rose-600 text-white font-semibold' : 'text-neutral-400 hover:text-white'}`}
+                onClick={() => handleFilterChange('essai')}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                  selectedFilter === 'essai' ? 'bg-[#E5B842] text-black font-semibold shadow-sm' : 'text-[#E5B842] hover:text-white'
+                }`}
               >
-                Entreprise
+                <Sparkles className="h-3 w-3" /> Essai 30j ({trialCount})
               </button>
               <button
-                onClick={() => handlePlanChange('Gratuit')}
-                className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'Gratuit' ? 'bg-neutral-700 text-white font-semibold' : 'text-neutral-400 hover:text-white'}`}
+                onClick={() => handleFilterChange('retard')}
+                className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 ${
+                  selectedFilter === 'retard' ? 'bg-rose-600 text-white font-semibold shadow-sm' : 'text-rose-400 hover:text-rose-300'
+                }`}
               >
-                Gratuit
+                <AlertTriangle className="h-3 w-3" /> Renouvellement dû ({retardCount})
               </button>
               <button
-                onClick={() => handlePlanChange('suspended')}
-                className={`px-2.5 py-1 rounded-md transition-all ${selectedPlan === 'suspended' ? 'bg-rose-950 text-rose-300 font-semibold' : 'text-neutral-400 hover:text-white'}`}
+                onClick={() => handleFilterChange('suspended')}
+                className={`px-2.5 py-1 rounded-md transition-all ${selectedFilter === 'suspended' ? 'bg-rose-950 text-rose-300 font-semibold' : 'text-neutral-400 hover:text-white'}`}
               >
                 Suspendues
               </button>
@@ -475,9 +640,10 @@ export default function TenantsPage() {
                 <tr className="border-b border-white/5 text-neutral-400 font-medium">
                   <th className="pb-3 text-xs uppercase tracking-wider">Agence & Ville</th>
                   <th className="pb-3 text-xs uppercase tracking-wider">Responsable & Contact</th>
-                  <th className="pb-3 text-xs uppercase tracking-wider">Formule</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Forfait Souscrit</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Statut Abonnement</th>
                   <th className="pb-3 text-xs uppercase tracking-wider">Locataires</th>
-                  <th className="pb-3 text-xs uppercase tracking-wider">Statut</th>
+                  <th className="pb-3 text-xs uppercase tracking-wider">Statut Réseau</th>
                   <th className="pb-3 text-right text-xs uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -510,25 +676,62 @@ export default function TenantsPage() {
                         </div>
                       </td>
 
-                      {/* Formule */}
+                      {/* Forfait Souscrit & Tarif */}
                       <td className="py-3.5 text-xs">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                          ag.plan === 'Entreprise' ? 'bg-rose-500/10 text-rose-400 ring-1 ring-inset ring-rose-500/20' :
-                          ag.plan === 'Plan Pro' ? 'bg-[#E5B842]/10 text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20' :
-                          'bg-neutral-500/10 text-neutral-400 ring-1 ring-inset ring-neutral-500/20'
-                        }`}>
-                          {ag.plan}
-                        </span>
+                        <div>
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                            ag.plan === 'Entreprise' ? 'bg-rose-500/10 text-rose-400 ring-1 ring-inset ring-rose-500/20' :
+                            ag.plan === 'Plan Pro' || ag.plan === 'Business' ? 'bg-[#E5B842]/10 text-[#E5B842] ring-1 ring-inset ring-[#E5B842]/20' :
+                            'bg-neutral-500/10 text-neutral-300 ring-1 ring-inset ring-neutral-500/20'
+                          }`}>
+                            {ag.plan}
+                          </span>
+                          <p className="text-[11px] font-mono text-neutral-400 mt-1">
+                            {ag.subscriptionPrice.toLocaleString()} F<span className="text-[9px] text-neutral-500">/mois</span>
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* Statut Abonnement (NEW!) */}
+                      <td className="py-3.5 text-xs">
+                        {ag.subscriptionStatus === 'en_regle' ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3" /> En règle (Payé)
+                            </span>
+                            <p className="text-[10px] text-neutral-400 mt-1 font-mono flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-neutral-500" /> Échéance : {ag.nextRenewalDate}
+                            </p>
+                          </div>
+                        ) : ag.subscriptionStatus === 'essai' ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#E5B842]/10 text-[#E5B842] border border-[#E5B842]/20">
+                              <Sparkles className="h-3 w-3" /> Essai ({ag.trialDaysRemaining ?? 30}j restants)
+                            </span>
+                            <p className="text-[10px] text-neutral-400 mt-1 font-mono flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-neutral-500" /> Fin : {ag.nextRenewalDate}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse">
+                              <AlertTriangle className="h-3 w-3" /> Renouvellement requis
+                            </span>
+                            <p className="text-[10px] text-rose-400/90 mt-1 font-mono font-semibold flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-rose-400" /> Échu le {ag.nextRenewalDate}
+                            </p>
+                          </div>
+                        )}
                       </td>
 
                       {/* Locataires */}
                       <td className="py-3.5 text-xs font-mono">
                         <span className="inline-flex items-center px-2 py-0.5 rounded bg-black/40 border border-white/5 font-semibold text-white">
-                          {ag.locataires} <span className="text-neutral-500 font-normal ml-1">actifs</span>
+                          {ag.locataires} <span className="text-neutral-500 font-normal ml-1">/ {ag.quota}</span>
                         </span>
                       </td>
 
-                      {/* Statut */}
+                      {/* Statut Réseau */}
                       <td className="py-3.5 text-xs">
                         {ag.status === 'active' ? (
                           <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
@@ -543,7 +746,30 @@ export default function TenantsPage() {
 
                       {/* Actions */}
                       <td className="py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Quick Regularize if late or in trial */}
+                          {ag.subscriptionStatus === 'retard' && (
+                            <>
+                              <Button
+                                onClick={() => handleRenewSubscription(ag.id)}
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1 h-8 px-2.5 rounded-lg shadow-sm"
+                                title="Enregistrer le paiement (+30 jours)"
+                              >
+                                <Check className="h-3.5 w-3.5" /> Régulariser
+                              </Button>
+                              <Button
+                                onClick={() => handleContactWhatsAppRenew(ag)}
+                                size="sm"
+                                variant="outline"
+                                className="bg-rose-950/20 border-rose-500/20 text-rose-400 hover:bg-rose-950/40 text-xs h-8 px-2 rounded-lg"
+                                title="Envoyer rappel WhatsApp d'abonnement"
+                              >
+                                <Smartphone className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+
                           {/* Inspect Agency Details Button */}
                           <Button 
                             onClick={() => handleOpenDetail(ag)}
@@ -571,7 +797,7 @@ export default function TenantsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-neutral-500 text-xs">
+                    <td colSpan={7} className="py-8 text-center text-neutral-500 text-xs">
                       Aucune agence trouvée avec ces critères.
                     </td>
                   </tr>
@@ -639,6 +865,7 @@ export default function TenantsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onToggleStatus={handleToggleStatus}
+        onRenewSubscription={handleRenewSubscription}
       />
 
       {/* Add New Partner Agency Modal */}

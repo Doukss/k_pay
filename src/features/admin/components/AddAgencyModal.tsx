@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import type { AgencyDetail, AgencyPlan } from '../types';
+import type { AgencyDetail, AgencyPlan, SubscriptionStatus } from '../types';
 import { toast } from 'sonner';
 
 interface AddAgencyModalProps {
@@ -35,7 +35,8 @@ export function AddAgencyModal({
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [ninea, setNinea] = useState('');
-  const [plan, setPlan] = useState<AgencyPlan>('Plan Pro');
+  const [plan, setPlan] = useState<AgencyPlan>('Starter');
+  const [initialSubStatus, setInitialSubStatus] = useState<SubscriptionStatus>('essai');
   
   // Gateways
   const [waveEnabled, setWaveEnabled] = useState(true);
@@ -99,8 +100,17 @@ export function AddAgencyModal({
       year: 'numeric',
     }).format(now);
 
-    const quota = plan === 'Entreprise' ? 9999 : plan === 'Plan Pro' ? 100 : 50;
-    const commissionRate = plan === 'Entreprise' ? 1.0 : plan === 'Plan Pro' ? 1.5 : 2.0;
+    const renewalDate = new Date();
+    renewalDate.setDate(renewalDate.getDate() + 30);
+    const formattedRenewalDate = new Intl.DateTimeFormat('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(renewalDate);
+
+    const quota = plan === 'Entreprise' ? 9999 : plan === 'Business' || plan === 'Plan Pro' ? 100 : 50;
+    const commissionRate = plan === 'Entreprise' ? 1.0 : plan === 'Business' || plan === 'Plan Pro' ? 1.5 : 2.0;
+    const subscriptionPrice = plan === 'Entreprise' ? 60000 : plan === 'Business' || plan === 'Plan Pro' ? 25000 : 15000;
 
     const newAgency: AgencyDetail = {
       id: Date.now(),
@@ -114,6 +124,13 @@ export function AddAgencyModal({
       ninea: ninea.trim(),
       plan,
       status: 'active',
+      subscriptionStatus: initialSubStatus,
+      subscriptionPrice,
+      nextRenewalDate: formattedRenewalDate,
+      lastPaymentDate: initialSubStatus === 'en_regle' ? formattedDate : undefined,
+      paymentGateway: initialSubStatus === 'en_regle' ? 'Wave' : undefined,
+      trialDaysRemaining: initialSubStatus === 'essai' ? 30 : undefined,
+      autoRenew: true,
       locataires: 0,
       quota,
       volumeMensuel: 0,
@@ -326,28 +343,71 @@ export function AddAgencyModal({
                 Formule d'Abonnement & Quota *
               </label>
               <div className="grid grid-cols-3 gap-2">
-                {(['Gratuit', 'Plan Pro', 'Entreprise'] as AgencyPlan[]).map((p) => (
+                {[
+                  { id: 'Starter' as AgencyPlan, name: 'Starter', price: '15 000 F', quota: '50 loc. max' },
+                  { id: 'Business' as AgencyPlan, name: 'Business', price: '25 000 F', quota: '100 loc. max' },
+                  { id: 'Entreprise' as AgencyPlan, name: 'Entreprise', price: '60 000 F', quota: 'Illimité' },
+                ].map((p) => (
                   <button
-                    key={p}
+                    key={p.id}
                     type="button"
-                    onClick={() => setPlan(p)}
+                    onClick={() => setPlan(p.id)}
                     className={`p-2.5 rounded-xl border text-left transition-all ${
-                      plan === p
-                        ? p === 'Plan Pro'
+                      plan === p.id
+                        ? p.id === 'Business'
                           ? 'border-[#E5B842] bg-[#E5B842]/10 text-white'
                           : 'border-rose-500 bg-rose-500/10 text-white'
                         : 'border-white/5 bg-black/40 text-neutral-400 hover:border-white/10 hover:text-white'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold">{p}</span>
-                      {plan === p && <Check className="h-3.5 w-3.5 text-[#E5B842]" />}
+                      <span className="text-xs font-bold">{p.name}</span>
+                      {plan === p.id && <Check className="h-3.5 w-3.5 text-[#E5B842]" />}
                     </div>
-                    <p className="text-[10px] text-neutral-500 mt-1">
-                      {p === 'Gratuit' ? '15k F (50 loc.)' : p === 'Plan Pro' ? '25k F (100 loc.)' : 'Pro (Illimité)'}
-                    </p>
+                    <p className="text-[11px] font-mono text-[#E5B842] font-semibold mt-0.5">{p.price}<span className="text-[9px] text-neutral-400 font-normal">/mois</span></p>
+                    <p className="text-[10px] text-neutral-500">{p.quota}</p>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Statut d'Abonnement Initial */}
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs font-semibold text-neutral-300">
+                Statut Initial de l'Abonnement *
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInitialSubStatus('essai')}
+                  className={`p-2.5 rounded-xl border text-left transition-all ${
+                    initialSubStatus === 'essai'
+                      ? 'border-[#E5B842] bg-[#E5B842]/10 text-white'
+                      : 'border-white/5 bg-black/40 text-neutral-400 hover:border-white/10 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">Essai Gratuit 30 Jours</span>
+                    {initialSubStatus === 'essai' && <Check className="h-3.5 w-3.5 text-[#E5B842]" />}
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">30 jours sans paiement immédiat</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInitialSubStatus('en_regle')}
+                  className={`p-2.5 rounded-xl border text-left transition-all ${
+                    initialSubStatus === 'en_regle'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-white'
+                      : 'border-white/5 bg-black/40 text-neutral-400 hover:border-white/10 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-400">En Règle (Payé)</span>
+                    {initialSubStatus === 'en_regle' && <Check className="h-3.5 w-3.5 text-emerald-400" />}
+                  </div>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">Premier mois validé par Mobile Money</p>
+                </button>
               </div>
             </div>
 

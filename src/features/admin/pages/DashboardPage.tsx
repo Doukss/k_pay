@@ -4,7 +4,12 @@ import {
   Building, 
   Send, 
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+  CreditCard,
+  ArrowRight
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -124,6 +129,86 @@ export default function DashboardPage() {
           );
         })}
       </div>
+
+      {/* Subscription Compliance Alert & Monitor */}
+      <Card className="bg-[#121318] border-white/5 text-white shadow-xl overflow-hidden">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-700/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base font-bold">
+                  Conformité des Abonnements SaaS du Réseau
+                </CardTitle>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  75% à jour
+                </span>
+              </div>
+              <CardDescription className="text-xs text-neutral-400 mt-0.5">
+                Suivi des mensualités Starter (15 000 F), Business (25 000 F), Pro et périodes d'essai de 30 jours
+              </CardDescription>
+            </div>
+          </div>
+
+          <Link 
+            to="/admin/tenants?filter=retard" 
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors self-start sm:self-auto mt-2 sm:mt-0"
+          >
+            Voir les agences à régulariser <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </CardHeader>
+
+        <CardContent className="pt-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {/* Status 1: En règle */}
+            <Link 
+              to="/admin/tenants?filter=en_regle"
+              className="p-3.5 rounded-xl bg-black/40 border border-emerald-500/20 hover:border-emerald-500/40 transition-all flex items-center justify-between group"
+            >
+              <div>
+                <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> 5 Agences En Règle
+                </p>
+                <p className="text-lg font-bold font-mono text-white mt-1">100 000 F/m</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">Cotisations mensuelles payées</p>
+              </div>
+              <span className="text-xs text-neutral-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all">→</span>
+            </Link>
+
+            {/* Status 2: Essai 30 jours */}
+            <Link 
+              to="/admin/tenants?filter=essai"
+              className="p-3.5 rounded-xl bg-black/40 border border-[#E5B842]/20 hover:border-[#E5B842]/40 transition-all flex items-center justify-between group"
+            >
+              <div>
+                <p className="text-xs text-[#E5B842] font-semibold flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" /> 2 Agences en Essai 30j
+                </p>
+                <p className="text-lg font-bold font-mono text-white mt-1">40 000 F en attente</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">Conversion après les 30 jours</p>
+              </div>
+              <span className="text-xs text-neutral-500 group-hover:text-[#E5B842] group-hover:translate-x-0.5 transition-all">→</span>
+            </Link>
+
+            {/* Status 3: Retard / Renouvellement */}
+            <Link 
+              to="/admin/tenants?filter=retard"
+              className="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/30 hover:border-rose-500/50 transition-all flex items-center justify-between group"
+            >
+              <div>
+                <p className="text-xs text-rose-400 font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 animate-pulse" /> 2 Renouvellements Dus
+                </p>
+                <p className="text-lg font-bold font-mono text-rose-400 mt-1">30 000 FCFA</p>
+                <p className="text-[10px] text-rose-300/80 mt-0.5 font-medium">Saint-Louis Immo & Thiès Immo</p>
+              </div>
+              <span className="text-xs text-rose-400 group-hover:translate-x-0.5 transition-all">→</span>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts Grid */}
       <div className="grid gap-6 md:grid-cols-3">
