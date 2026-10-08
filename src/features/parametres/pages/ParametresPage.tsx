@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { 
@@ -25,22 +25,26 @@ import { useTheme } from '@/shared/context/ThemeContext';
 import { useAgencyStore, type PlanTier } from '@/stores/agencyStore';
 import { SubscriptionModal } from '@/shared/components/SubscriptionModal';
 import { toast } from 'sonner';
+import { api } from '@/shared/api/client';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function ParametresPage() {
   const { theme, setTheme } = useTheme();
+  const changePassword = useAuthStore((state) => state.changePassword);
   const { 
     locataires, 
     subscription, 
-    simulateTrialExpiry, 
-    simulateMonthlyExpiry,
-    resetTrialTo30Days, 
     renewSubscription,
     toggleAutoRenew,
-    resetToDemoData 
+    resetToDemoData,
   } = useAgencyStore();
   const [activeTab, setActiveTab] = useState<'profil' | 'paiement' | 'relances' | 'abonnement' | 'securite'>('profil');
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [selectedPlanToUpgrade, setSelectedPlanToUpgrade] = useState<PlanTier>('starter');
+  const [isPasswordChangeOpen, setIsPasswordChangeOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   // Agency profile state
   const [agencyName, setAgencyName] = useState('Cabinet Immobilier immo221');
@@ -53,6 +57,7 @@ export default function ParametresPage() {
   // Gateways State
   const [waveActive, setWaveActive] = useState(true);
   const [omActive, setOmActive] = useState(true);
+  const [whatsappActive, setWhatsappActive] = useState(true);
   const [feeBearer, setFeeBearer] = useState<'agency' | 'tenant'>('agency');
 
   // Reminder rules State
@@ -64,10 +69,22 @@ export default function ParametresPage() {
   // Security state
   const [twoFactor, setTwoFactor] = useState(true);
 
-  const handleSave = () => {
-    toast.success('Paramètres enregistrés avec succès !', {
-      description: 'Vos configurations sont immédiatement prises en compte.',
-    });
+  useEffect(() => {
+    api.get('/agency/settings').then(({ data }) => {
+      setAgencyName(data.agencyName || ''); setContactName(data.contactName || ''); setPhone(data.phone || '');
+      setEmail(data.email || ''); setAddress(data.address || ''); setNinea(data.ninea || '');
+      setWaveActive(data.waveActive); setOmActive(data.omActive); setFeeBearer(data.feeBearer);
+      setWhatsappActive(data.whatsappActive);
+      setRemindJMinus3(data.remindJMinus3); setRemindJDay(data.remindJDay); setRemindJPlus3(data.remindJPlus3);
+      setRemindLanguage(data.remindLanguage); setTwoFactor(data.twoFactor);
+    }).catch((error) => toast.error(error instanceof Error ? error.message : 'Paramètres indisponibles'));
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      await api.patch('/agency/settings', { agencyName, contactName, phone, email, address, ninea, waveActive, omActive, whatsappActive, feeBearer, remindJMinus3, remindJDay, remindJPlus3, remindLanguage, twoFactor });
+      toast.success('Paramètres enregistrés avec succès !');
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Enregistrement impossible'); }
   };
 
   return (
@@ -453,7 +470,7 @@ export default function ParametresPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => toast.info('Un lien de réinitialisation sécurisé a été envoyé à votre adresse email')}
+                onClick={() => setIsPasswordChangeOpen(true)}
                 className="bg-black/30 border-white/10 text-xs text-neutral-300 hover:bg-neutral-800"
               >
                 Changer le mot de passe
@@ -464,10 +481,10 @@ export default function ParametresPage() {
             <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="font-semibold text-rose-400 flex items-center gap-1.5">
-                  <RotateCcw className="h-4 w-4" /> Mode Démonstration &amp; Soutenance
+                  <RotateCcw className="h-4 w-4" /> Synchronisation des données
                 </p>
                 <p className="text-xs text-neutral-400 mt-0.5">
-                  Réinitialise instantanément les locataires, encaissements et activités aux données de démo par défaut.
+                  Recharge les locataires, encaissements, activités et notifications depuis le serveur.
                 </p>
               </div>
               <Button 
@@ -475,11 +492,11 @@ export default function ParametresPage() {
                 size="sm"
                 onClick={() => {
                   resetToDemoData();
-                  toast.success('Données de démonstration réinitialisées avec succès !');
+                  toast.success('Données synchronisées depuis le serveur.');
                 }}
                 className="bg-rose-950/30 border-rose-500/30 text-xs text-rose-300 hover:bg-rose-950/60 shrink-0 gap-1.5"
               >
-                <RotateCcw className="h-3.5 w-3.5" /> Réinitialiser les données
+                <RotateCcw className="h-3.5 w-3.5" /> Synchroniser
               </Button>
             </div>
           </CardContent>
@@ -673,10 +690,7 @@ export default function ParametresPage() {
                       </span>
                     </div>
                     <button
-                      onClick={() => {
-                        toggleAutoRenew();
-                        toast.info(`Reconduction automatique ${!(subscription?.autoRenew ?? true) ? 'activée' : 'désactivée'}`);
-                      }}
+                      onClick={() => { void toggleAutoRenew().then(() => toast.success(`Reconduction automatique ${!(subscription?.autoRenew ?? true) ? 'activée' : 'désactivée'}`)).catch((error) => toast.error(error instanceof Error ? error.message : 'Modification impossible')); }}
                       className="text-[11px] text-[#E5B842] hover:underline text-left mt-2 flex items-center gap-1 font-medium"
                     >
                       <RefreshCw className="h-3 w-3" /> Changer l'option
@@ -688,19 +702,18 @@ export default function ParametresPage() {
                 <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#E5B842]/5 border border-[#E5B842]/20 p-3 rounded-xl">
                   <div className="text-xs text-neutral-300">
                     <p className="font-semibold text-white">Renouvellement mensuel de votre forfait d'agence</p>
-                    <p className="text-neutral-400 text-[11px]">Réglez par Wave ou Orange Money instantanément avec génération de quittance certifiée.</p>
+                    <p className="text-neutral-400 text-[11px]">Enregistrez un paiement de démonstration Wave ou Orange Money. Aucun débit réel n'est effectué.</p>
                   </div>
                   <Button
                     onClick={() => {
-                      const res = renewSubscription(subscription?.paymentMethod || 'Wave');
-                      if (res.success) {
-                        toast.success(res.message);
-                      }
+                      if (subscription?.status === 'expired' && subscription.monthlyRenewalDue) {
+                        void renewSubscription(subscription.paymentMethod || 'Wave').then((res) => toast.success(res.message)).catch((error) => toast.error(error instanceof Error ? error.message : 'Renouvellement impossible'));
+                      } else { setSelectedPlanToUpgrade(subscription?.planId || 'starter'); setIsSubscriptionModalOpen(true); }
                     }}
                     className="bg-[#E5B842] hover:bg-[#cdaf35] text-black font-bold text-xs h-9 px-4 shrink-0 shadow-md flex items-center gap-1.5"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
-                    Renouveler pour ce mois ({(subscription?.price || 15000).toLocaleString()} F)
+                    {subscription?.status === 'expired' && subscription.monthlyRenewalDue ? 'Enregistrer le renouvellement' : 'Choisir / payer un forfait'} ({(subscription?.price || 15000).toLocaleString()} F)
                   </Button>
                 </div>
               </div>
@@ -934,58 +947,28 @@ export default function ParametresPage() {
                 </div>
               </div>
 
-              {/* Soutenance Demo Simulation Card */}
-              <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-[#E5B842] flex items-center gap-1.5 text-xs">
-                    <Sparkles className="h-4 w-4" /> Outils Démonstration Soutenance (Essai &amp; Renouvellement)
-                  </p>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">
-                    Permet de simuler instantanément la fin des 30 jours d'essai gratuit ou la fin de mois nécessitant le renouvellement par Wave / Orange Money.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      simulateTrialExpiry();
-                      toast.warning('Simulation : Essai de 30 jours expiré ! La plateforme invite maintenant au paiement.');
-                    }}
-                    className="bg-amber-950/30 border-amber-500/30 text-xs text-amber-300 hover:bg-amber-950/60"
-                  >
-                    Simuler fin d'essai (0j)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      simulateMonthlyExpiry();
-                      toast.warning("Simulation : Échéance du mois atteinte (30 jours) ! Renouvellement de l'abonnement requis.");
-                    }}
-                    className="bg-rose-950/30 border-rose-500/30 text-xs text-rose-300 hover:bg-rose-950/60"
-                  >
-                    Simuler fin de mois (30j)
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      resetTrialTo30Days();
-                      toast.success('Forfait réinitialisé pour 30 jours (Mode démo)');
-                    }}
-                    className="bg-white/5 border-white/10 text-xs text-neutral-300 hover:bg-white/10"
-                  >
-                    Rétablir 30j
-                  </Button>
-                </div>
-              </div>
+
             </CardContent>
           </Card>
         </div>
       )}
 
       {/* Subscription Modal for Payment / Upgrade */}
+      {isPasswordChangeOpen && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4">
+        <form className="w-full max-w-md space-y-4 rounded-2xl border border-white/10 bg-[#14151B] p-6 text-white" onSubmit={async (event) => {
+          event.preventDefault();
+          if (newPassword.length < 6) return toast.error('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+          if (newPassword !== confirmNewPassword) return toast.error('Les mots de passe ne correspondent pas.');
+          try { await changePassword(currentPassword, newPassword); toast.success('Mot de passe modifié'); setIsPasswordChangeOpen(false); setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword(''); }
+          catch (error) { toast.error(error instanceof Error ? error.message : 'Modification impossible'); }
+        }}>
+          <h2 className="text-lg font-semibold">Changer le mot de passe</h2>
+          <input aria-label="Mot de passe actuel" type="password" autoComplete="current-password" required value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} placeholder="Mot de passe actuel" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm" />
+          <input aria-label="Nouveau mot de passe" type="password" autoComplete="new-password" required minLength={6} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Nouveau mot de passe" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm" />
+          <input aria-label="Confirmer le nouveau mot de passe" type="password" autoComplete="new-password" required value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} placeholder="Confirmer le nouveau mot de passe" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm" />
+          <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setIsPasswordChangeOpen(false)}>Annuler</Button><Button type="submit">Enregistrer</Button></div>
+        </form>
+      </div>}
       <SubscriptionModal
         isOpen={isSubscriptionModalOpen}
         onClose={() => setIsSubscriptionModalOpen(false)}

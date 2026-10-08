@@ -21,8 +21,8 @@ interface AgencyDetailModalProps {
   agency: AgencyDetail | null;
   isOpen: boolean;
   onClose: () => void;
-  onToggleStatus: (agencyId: number) => void;
-  onRenewSubscription?: (agencyId: number) => void;
+  onToggleStatus: (agencyId: string | number) => void;
+  onRenewSubscription?: (agencyId: string | number) => void;
 }
 
 export function AgencyDetailModal({

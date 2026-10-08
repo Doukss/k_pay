@@ -59,9 +59,9 @@ export default function EncaissementsPage() {
       tenantName: tx.tenant,
       property: tx.property,
       amount: tx.amount,
-      month: 'Août 2026',
+      month: tx.billingPeriod ? new Date(`${tx.billingPeriod}-01T00:00:00`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '—',
       paymentDate: tx.date,
-      paymentMethod: 'Wave Mobile Money',
+      paymentMethod: tx.method === 'orange_money' ? 'Orange Money' : tx.method === 'especes' ? 'Espèces' : 'Wave',
       reference: tx.reference,
     });
     setIsQuittanceOpen(true);

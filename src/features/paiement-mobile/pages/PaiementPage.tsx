@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { 
   ShieldCheck, 
@@ -17,56 +17,79 @@ import { Card, CardContent } from '@/shared/components/ui/card';
 import { QuittanceModal } from '@/shared/components/QuittanceModal';
 import { useAgencyStore } from '@/stores/agencyStore';
 import { toast } from 'sonner';
+import { api } from '@/shared/api/client';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function PaiementPage() {
   const { token } = useParams<{ token?: string }>();
   const [searchParams] = useSearchParams();
   const tenantIdParam = searchParams.get('tenantId') || searchParams.get('id') || token;
 
-  const { locataires, encaisserLoyer } = useAgencyStore();
+  const { locataires, encaisserLoyer, loadData, loaded } = useAgencyStore();
+  const agencyName = useAuthStore((state) => state.user?.agencyName);
+  const [publicPayment, setPublicPayment] = useState<any>(null);
+  const [publicLoaded, setPublicLoaded] = useState(!token);
+
+  useEffect(() => {
+    if (token) {
+      setPublicLoaded(false);
+      api.get(`/public/payments/${encodeURIComponent(token)}`).then(({ data }) => setPublicPayment(data))
+        .catch((error) => toast.error(error instanceof Error ? error.message : 'Lien de paiement invalide'))
+        .finally(() => setPublicLoaded(true));
+    } else { loadData().catch(() => undefined); }
+  }, [token, loadData]);
 
   const [selectedMethod, setSelectedMethod] = useState<'wave' | 'om'>('wave');
   const [isProcessing, setIsProcessing] = useState(false);
   const [justPaid, setJustPaid] = useState(false);
   const [isQuittanceOpen, setIsQuittanceOpen] = useState(false);
 
-  // Find tenant by ID, or fallback to first tenant if not found
   const tenant = useMemo(() => {
+    if (token) return publicPayment?.tenant || {
+      id: '', name: 'Lien de paiement invalide ou expiré', email: '', phone: '',
+      property: '—', rentVal: 0, status: 'pending' as const, delayDays: 0,
+    };
     if (tenantIdParam) {
-      const parsedId = parseInt(tenantIdParam.replace('KP-', ''), 10);
-      const found = locataires.find(l => l.id === parsedId || l.id.toString() === tenantIdParam);
+      const found = locataires.find(l => l.id === tenantIdParam);
       if (found) return found;
     }
-    return locataires[0] || {
-      id: 1,
-      name: 'Mame Diop',
-      email: 'mame.diop@email.sn',
-      phone: '+221 77 123 45 67',
-      property: 'Appartement 2A',
-      rentVal: 250000,
-      status: 'late',
+    return {
+      id: '',
+      name: tenantIdParam ? 'Locataire introuvable' : 'Lien de paiement invalide',
+      email: '',
+      phone: '',
+      property: '—',
+      rentVal: 0,
+      status: 'pending' as const,
       delayDays: 0,
-      createdAt: '12 Août 2026 à 09:15',
     };
-  }, [locataires, tenantIdParam]);
+  }, [locataires, tenantIdParam, token, publicPayment]);
 
-  const [phoneNumber, setPhoneNumber] = useState(tenant.phone.replace('+221', '').trim());
+  const [phoneNumber, setPhoneNumber] = useState('');
+  useEffect(() => setPhoneNumber(tenant.phone.replace('+221', '').trim()), [tenant.phone]);
 
   const isAlreadyPaid = tenant.status === 'paid' && !justPaid;
   const isPaidView = isAlreadyPaid || justPaid;
 
-  const reference = `KP-${tenant.id.toString().padStart(4, '0')}-SN`;
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const reference = paymentReference || publicPayment?.payment?.reference || '—';
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    if (!tenant.id) { toast.error('Ce lien ne correspond à aucun locataire chargé. Connectez-vous à l’espace agence pour consulter les dossiers.'); return; }
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      if (token) {
+        const { data } = await api.post(`/public/payments/${encodeURIComponent(token)}/confirm`, { method: selectedMethod === 'wave' ? 'wave' : 'orange_money' });
+        setPaymentReference(data.payment.reference);
+        setPublicPayment((current: any) => ({ ...current, alreadyPaid: true, payment: data.payment, tenant: { ...current.tenant, status: 'paid' } }));
+      } else {
+        const result = await encaisserLoyer(tenant.id, selectedMethod === 'wave' ? 'wave' : 'orange_money');
+        setPaymentReference(result.reference);
+      }
       setJustPaid(true);
-      encaisserLoyer(tenant.id);
-      toast.success(`Paiement de ${tenant.rentVal.toLocaleString()} FCFA validé avec succès par ${selectedMethod === 'wave' ? 'Wave' : 'Orange Money'} !`, {
-        description: 'Votre quittance de loyer officielle et certifiée est disponible.',
-      });
-    }, 1500);
+      toast.success(`Paiement simulé de ${tenant.rentVal.toLocaleString()} FCFA enregistré`, { description: 'Aucun débit réel Wave ou Orange Money n’a été effectué.' });
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Paiement impossible'); }
+    finally { setIsProcessing(false); }
   };
 
   return (
@@ -86,14 +109,16 @@ export default function PaiementPage() {
 
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Sécurisé SSL</span>
+            <span>Paiement simulé</span>
           </div>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 max-w-md w-full mx-auto p-4 sm:p-5 my-auto">
-        {!isPaidView ? (
+        {(token ? !publicLoaded : !loaded) ? <Card className="bg-[#121318] border-white/5 text-white"><CardContent className="p-6 text-center text-neutral-400">Chargement du dossier…</CardContent></Card> : !tenant.id ? (
+          <Card className="bg-[#121318] border-white/5 text-white"><CardContent className="p-6 text-center"><h1 className="text-lg font-semibold">Dossier indisponible</h1><p className="mt-2 text-sm text-neutral-400">Ce lien est invalide, expiré ou le dossier n’est plus disponible.</p></CardContent></Card>
+        ) : !isPaidView ? (
           /* Checkout View */
           <div className="space-y-4 animate-in fade-in duration-200">
             {/* Context Badge */}
@@ -119,7 +144,7 @@ export default function PaiementPage() {
                   Règlement de loyer
                 </h1>
                 <p className="text-xs text-neutral-400 mt-1 flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-neutral-500" /> Période : Septembre 2026
+                  <Calendar className="h-3.5 w-3.5 text-neutral-500" /> Période : {new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date())}
                 </p>
               </div>
 
@@ -178,7 +203,7 @@ export default function PaiementPage() {
                       </div>
                       <div>
                         <p className="font-bold text-xs text-white">Wave</p>
-                        <p className="text-[10px] text-neutral-400">1-Clic direct</p>
+                        <p className="text-[10px] text-neutral-400">Simulation Wave</p>
                       </div>
                     </button>
 
@@ -200,7 +225,7 @@ export default function PaiementPage() {
                       </div>
                       <div>
                         <p className="font-bold text-xs text-white">Orange Money</p>
-                        <p className="text-[10px] text-neutral-400">#144# ou Maxit</p>
+                        <p className="text-[10px] text-neutral-400">Simulation Orange Money</p>
                       </div>
                     </button>
                   </div>
@@ -209,7 +234,7 @@ export default function PaiementPage() {
                 {/* Phone number confirmation */}
                 <div className="space-y-1.5 pt-1">
                   <label className="text-xs text-neutral-400 font-medium">
-                    Numéro {selectedMethod === 'wave' ? 'Wave' : 'Orange Money'} à débiter :
+                    Numéro {selectedMethod === 'wave' ? 'Wave' : 'Orange Money'} (indicatif, aucun débit réel) :
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400 font-mono font-bold flex items-center gap-1">
@@ -238,11 +263,11 @@ export default function PaiementPage() {
                   {isProcessing ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Autorisation {selectedMethod === 'wave' ? 'Wave' : 'Orange Money'} en cours...
+                      Enregistrement en cours...
                     </span>
                   ) : (
                     <>
-                      <span>Valider le paiement de {tenant.rentVal.toLocaleString()} FCFA</span>
+                      <span>Enregistrer le paiement simulé ({tenant.rentVal.toLocaleString()} FCFA)</span>
                       <ChevronRight className="h-4 w-4" />
                     </>
                   )}
@@ -251,10 +276,10 @@ export default function PaiementPage() {
                 {/* Security badges */}
                 <div className="pt-2 flex items-center justify-center gap-3 text-[10px] text-neutral-500">
                   <span className="flex items-center gap-1">
-                    <ShieldCheck className="h-3 w-3 text-emerald-400" /> Agréé BCEAO
+                    <ShieldCheck className="h-3 w-3 text-emerald-400" /> Paiement simulé
                   </span>
                   <span>•</span>
-                  <span>Quittance certifiée instantanée</span>
+                  <span>Reçu de démonstration</span>
                 </div>
               </CardContent>
             </Card>
@@ -269,7 +294,7 @@ export default function PaiementPage() {
 
               <div>
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                  <Sparkles className="h-3 w-3" /> Règlement Validé avec Succès
+                  <Sparkles className="h-3 w-3" /> Paiement simulé enregistré
                 </span>
                 <h2 
                   className="text-2xl font-bold text-white mt-3"
@@ -324,7 +349,7 @@ export default function PaiementPage() {
 
       {/* Mobile Footer */}
       <footer className="py-4 border-t border-white/5 text-center text-[11px] text-neutral-500">
-        KeurGui Pay · Solution certifiée de paiement locatif sénégalais 🇸🇳
+        KeurGui Pay · Démonstration · Aucun transfert d’argent réel
       </footer>
 
       {/* Quittance Modal */}
@@ -336,9 +361,9 @@ export default function PaiementPage() {
           tenantPhone: tenant.phone,
           property: tenant.property,
           amount: tenant.rentVal,
-          month: 'Septembre 2026',
+          month: new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date()),
           reference: reference,
-          agencyName: 'Cabinet Immobilier Immo221',
+          agencyName: publicPayment?.agencyName || agencyName || 'Agence KeurGuiPay',
           paymentMethod: selectedMethod === 'wave' ? 'Wave Mobile Money' : 'Orange Money',
         }}
       />

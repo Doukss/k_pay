@@ -21,15 +21,21 @@ export function LoginForm() {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    login(values.email);
-
-    if (values.email.toLowerCase() === 'admin@keurguipay.sn') {
+    try {
+      const mustChangePassword = await login(values.email, values.password);
+      const user = useAuthStore.getState().user;
+      if (mustChangePassword) {
+        toast.success('Connexion réussie', { description: 'Vous devez définir un nouveau mot de passe.' });
+        navigate('/mot-de-passe-provisoire', { replace: true });
+      } else if (user?.role === 'admin') {
       toast.success('Connexion Super Admin réussie');
       navigate('/admin/dashboard', { replace: true });
-    } else {
+      } else {
       toast.success('Connexion réussie');
       navigate('/agence/dashboard', { replace: true });
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Connexion impossible');
     }
   };
 
@@ -51,12 +57,9 @@ export function LoginForm() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Mot de passe</Label>
-          <Link
-            to="/mot-de-passe-oublie"
-            className="text-xs font-medium text-primary hover:underline"
-          >
+          <button type="button" onClick={() => toast.info("La réinitialisation par e-mail n’est pas encore configurée. Contactez l’administrateur.")} className="text-xs font-medium text-primary hover:underline">
             Mot de passe oublié ?
-          </Link>
+          </button>
         </div>
         <Input
           id="password"

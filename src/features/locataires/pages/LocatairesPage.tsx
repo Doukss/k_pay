@@ -107,25 +107,21 @@ export default function LocatairesPage() {
     return filteredLocataires.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredLocataires, currentPage]);
 
-  const handleEncaisser = (id: number, name: string) => {
-    encaisserLoyer(id);
-    toast.success(`Encaissement enregistré pour ${name}`);
+  const handleEncaisser = async (id: string, name: string) => {
+    try { await encaisserLoyer(id); toast.success(`Encaissement enregistré pour ${name}`); }
+    catch (error) { toast.error(error instanceof Error ? error.message : 'Encaissement impossible'); }
   };
 
-  const handleRelancer = (loc: Locataire) => {
-    relancerLocataire(loc.id);
+  const handleRelancer = async (loc: Locataire) => {
     const msg = createWhatsAppPaymentMessage(loc);
-    window.open(msg.whatsappUrl, '_blank');
-    toast.success(`Relance WhatsApp préparée pour ${loc.name}`, {
-      description: `Lien Wave/OM inclus : ${msg.paymentUrl}`,
-    });
+    const tab = window.open('about:blank', '_blank');
+    try { const reminder = await relancerLocataire(loc.id); if (tab) tab.location.href = reminder.whatsappUrl || msg.whatsappUrl; toast.success(`Relance WhatsApp préparée pour ${loc.name}`, { description: `L'envoi WhatsApp reste manuel : ${reminder.paymentUrl || msg.paymentUrl}` }); }
+    catch (error) { tab?.close(); toast.error(error instanceof Error ? error.message : 'Relance impossible'); }
   };
 
   const confirmDelete = () => {
     if (!locataireToDelete) return;
-    deleteLocataire(locataireToDelete.id);
-    toast.success(`Locataire "${locataireToDelete.name}" supprimé avec succès`);
-    setLocataireToDelete(null);
+    void deleteLocataire(locataireToDelete.id).then(() => { toast.success(`Locataire "${locataireToDelete.name}" supprimé avec succès`); setLocataireToDelete(null); }).catch((error) => toast.error(error instanceof Error ? error.message : 'Suppression impossible'));
   };
 
   const handleOpenQuittance = (loc: Locataire) => {
@@ -169,7 +165,7 @@ export default function LocatairesPage() {
   };
 
   // Submit Handler for Add / Edit with Uniqueness Validations
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: typeof formErrors = {};
 
@@ -229,9 +225,9 @@ export default function LocatairesPage() {
       return;
     }
 
-    if (editingLocataire) {
-      // MODE MODIFICATION
-      updateLocataire(editingLocataire.id, {
+    try {
+      if (editingLocataire) {
+      await updateLocataire(editingLocataire.id, {
         name: formData.name.trim(),
         email: trimmedEmail,
         phone: formData.phone.trim(),
@@ -241,7 +237,7 @@ export default function LocatairesPage() {
       toast.success(`Locataire "${formData.name.trim()}" mis à jour avec succès`);
     } else {
       // MODE AJOUT
-      addLocataire({
+      await addLocataire({
         name: formData.name.trim(),
         email: trimmedEmail,
         phone: formData.phone.trim(),
@@ -251,9 +247,9 @@ export default function LocatairesPage() {
         delayDays: 0,
       });
       toast.success(`Nouveau locataire "${formData.name.trim()}" ajouté avec succès (Statut : En attente)`);
-    }
-
-    setIsModalOpen(false);
+      }
+      setIsModalOpen(false);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Enregistrement du locataire impossible'); }
   };
 
   const handleExportCSV = () => {

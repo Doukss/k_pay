@@ -23,6 +23,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar';
 import { useAgencyStore } from '@/stores/agencyStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useEffect } from 'react';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { SubscriptionModal } from '@/shared/components/SubscriptionModal';
 import { toast } from 'sonner';
@@ -42,6 +43,11 @@ export function AgentLayout({ children }: AgentLayoutProps) {
 
   const { locataires, notifications = [], subscription, markAsRead, markAllAsRead } = useAgencyStore();
   const { logout } = useAuthStore();
+  const loadData = useAgencyStore((state) => state.loadData);
+
+  useEffect(() => {
+    loadData().catch((error) => toast.error(error instanceof Error ? error.message : 'Chargement des données impossible'));
+  }, [loadData]);
 
   const lateCount = useMemo(() => {
     return locataires.filter((l) => l.status === 'late').length;

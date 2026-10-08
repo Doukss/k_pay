@@ -15,6 +15,10 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/connexion" replace state={{ from: location }} />;
   }
 
+  if (user.passwordChangeRequired && location.pathname !== '/mot-de-passe-provisoire') {
+    return <Navigate to="/mot-de-passe-provisoire" replace />;
+  }
+
   if (requiredRole && user.role !== requiredRole) {
     // Si l'utilisateur n'a pas le bon rôle, redirige vers son espace légitime
     const fallbackPath = user.role === 'admin' ? '/admin/dashboard' : '/agence/dashboard';

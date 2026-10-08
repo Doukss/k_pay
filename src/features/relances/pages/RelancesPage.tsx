@@ -18,6 +18,7 @@ import {
 import { useAgencyStore, type Locataire } from '@/stores/agencyStore';
 import { createWhatsAppPaymentMessage } from '@/shared/utils/whatsapp';
 import { toast } from 'sonner';
+import { api } from '@/shared/api/client';
 
 export default function RelancesPage() {
   const { locataires, relancerLocataire } = useAgencyStore();
@@ -70,17 +71,15 @@ export default function RelancesPage() {
     return filteredRelances.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredRelances, currentPage]);
 
-  const handleSendWhatsApp = (loc: Locataire) => {
-    relancerLocataire(loc.id);
+  const handleSendWhatsApp = async (loc: Locataire) => {
     const msg = createWhatsAppPaymentMessage(loc);
-    setPreviewWhatsApp({ loc, ...msg });
-    
-    // Open WhatsApp Web or mobile app in background/new tab
-    window.open(msg.whatsappUrl, '_blank');
-
-    toast.success(`Relance WhatsApp préparée pour ${loc.name}`, {
-      description: `Lien Wave/OM inclus : ${msg.paymentUrl}`,
-    });
+    const tab = window.open('about:blank', '_blank');
+    try {
+      const reminder = await relancerLocataire(loc.id);
+      setPreviewWhatsApp({ loc, ...msg, text: reminder.message || msg.text, paymentUrl: reminder.paymentUrl || msg.paymentUrl, whatsappUrl: reminder.whatsappUrl || msg.whatsappUrl });
+      if (tab) tab.location.href = reminder.whatsappUrl || msg.whatsappUrl;
+      toast.success(`Relance préparée pour ${loc.name}`, { description: "Le message WhatsApp s'ouvre pour validation et envoi manuel." });
+    } catch (error) { tab?.close(); toast.error(error instanceof Error ? error.message : 'Relance impossible'); }
   };
 
   const handleCopy = (text: string) => {
@@ -90,20 +89,19 @@ export default function RelancesPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleBulkRemind = () => {
+  const handleBulkRemind = async () => {
     if (lateLocataires.length === 0) {
       toast.info('Aucun locataire en retard à relancer');
       return;
     }
 
     setIsBulkSending(true);
-    setTimeout(() => {
-      lateLocataires.forEach((l) => relancerLocataire(l.id));
-      setIsBulkSending(false);
-      toast.success(`Campagne terminée : ${lateLocataires.length} relances avec lien Wave/OM expédiées !`, {
-        icon: '🚀',
-      });
-    }, 1200);
+    try {
+      const { data } = await api.post('/reminders/bulk', {});
+      await useAgencyStore.getState().loadData();
+      toast.success(`${data.prepared} relance(s) préparée(s)`, { description: "L'envoi WhatsApp est manuel tant que la Cloud API n'est pas configurée." });
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Préparation des relances impossible'); }
+    finally { setIsBulkSending(false); }
   };
 
   return (

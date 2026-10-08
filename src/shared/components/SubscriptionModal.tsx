@@ -48,16 +48,11 @@ export function SubscriptionModal({ isOpen, onClose, defaultPlanId = 'starter' }
 
   const currentPlanConfig = PLANS_INFO.find((p) => p.id === selectedPlan) || PLANS_INFO[0];
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      const res = paySubscription(selectedPlan, selectedMethod);
-      if (res.success) {
-        toast.success(res.message);
-        onClose();
-      }
-    }, 1200);
+    try { const res = await paySubscription(selectedPlan, selectedMethod); toast.success(res.message); onClose(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : 'Paiement impossible'); }
+    finally { setIsProcessing(false); }
   };
 
   return (
@@ -218,7 +213,7 @@ export function SubscriptionModal({ isOpen, onClose, defaultPlanId = 'starter' }
           {/* Security footnote */}
           <div className="flex items-center gap-2 text-[11px] text-neutral-400">
             <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-            <span>Transaction cryptée et sécurisée directement par les API officielles {selectedMethod}.</span>
+            <span>Paiement de démonstration : aucune transaction réelle n’est envoyée à {selectedMethod}.</span>
           </div>
         </div>
 

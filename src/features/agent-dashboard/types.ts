@@ -3,6 +3,7 @@ export interface DashboardKpis {
   totalCollecte: number;
   totalImpaye: number;
   nombreRetards: number;
+  nombreLocataires?: number;
 }
 
 export interface MonthlyRevenue {

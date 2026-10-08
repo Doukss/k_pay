@@ -25,17 +25,11 @@ import {
 import { useAgencyStore, type Locataire } from '@/stores/agencyStore';
 import { createWhatsAppPaymentMessage } from '@/shared/utils/whatsapp';
 import { toast } from 'sonner';
-
-// Historical data for Encaissements Chart (Avr. to Juin)
-// The last month (Juil.) is dynamically computed below
-const historicalChartData = [
-  { name: 'Avr.', attendu: 500000, collecte: 150000 },
-  { name: 'Mai', attendu: 600000, collecte: 160000 },
-  { name: 'Juin', attendu: 750000, collecte: 165000 },
-];
+import { useDashboardStats } from '../hooks/useDashboardStats';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { data: dashboardData } = useDashboardStats();
   const { 
     locataires, 
     recentActivities, 
@@ -44,26 +38,17 @@ export default function DashboardPage() {
   } = useAgencyStore();
 
   // Dynamic calculations based on state
-  const totalAttendu = locataires.reduce((acc, curr) => acc + curr.rentVal, 0);
-  const totalCollecte = locataires
-    .filter((l) => l.status === 'paid')
-    .reduce((acc, curr) => acc + curr.rentVal, 0);
-  const totalImpaye = locataires
-    .filter((l) => l.status === 'late')
-    .reduce((acc, curr) => acc + curr.rentVal, 0);
-  const totalEnAttente = locataires
-    .filter((l) => l.status === 'pending')
-    .reduce((acc, curr) => acc + curr.rentVal, 0);
-  const nombreRetards = locataires.filter((l) => l.status === 'late').length;
+  const totalAttendu = dashboardData?.kpis.totalAttendu ?? 0;
+  const totalCollecte = dashboardData?.kpis.totalCollecte ?? 0;
+  const totalImpaye = dashboardData?.kpis.totalImpaye ?? 0;
+  const totalEnAttente = Math.max(0, totalAttendu - totalCollecte - totalImpaye);
+  const nombreRetards = dashboardData?.kpis.nombreRetards ?? 0;
 
   // Monthly performance percentage
   const performancePct = totalAttendu > 0 ? Math.round((totalCollecte / totalAttendu) * 100) : 0;
 
   // Dynamic data for charts
-  const chartData = [
-    ...historicalChartData,
-    { name: 'Juil.', attendu: totalAttendu, collecte: totalCollecte },
-  ];
+  const chartData = dashboardData?.revenusMensuels.map((month) => ({ name: month.mois, attendu: month.attendu, collecte: month.collecte })) || [];
 
   const pieData = [
     { name: 'Collecté', value: totalCollecte, color: '#10B981' },
@@ -74,18 +59,16 @@ export default function DashboardPage() {
   // Actions prioritaires (late tenants)
   const lateLocataires = locataires.filter((l) => l.status === 'late');
 
-  const handleEncaisser = (id: number, name: string) => {
-    encaisserLoyer(id);
-    toast.success(`Encaissement enregistré pour ${name}`);
+  const handleEncaisser = async (id: string, name: string) => {
+    try { await encaisserLoyer(id); toast.success(`Encaissement enregistré pour ${name}`); }
+    catch (error) { toast.error(error instanceof Error ? error.message : 'Encaissement impossible'); }
   };
 
-  const handleRelancer = (loc: Locataire) => {
-    relancerLocataire(loc.id);
+  const handleRelancer = async (loc: Locataire) => {
     const msg = createWhatsAppPaymentMessage(loc);
-    window.open(msg.whatsappUrl, '_blank');
-    toast.success(`Relance WhatsApp préparée pour ${loc.name}`, {
-      description: `Lien Wave/OM inclus : ${msg.paymentUrl}`,
-    });
+    const tab = window.open('about:blank', '_blank');
+    try { const reminder = await relancerLocataire(loc.id); if (tab) tab.location.href = reminder.whatsappUrl || msg.whatsappUrl; toast.success(`Relance WhatsApp préparée pour ${loc.name}`, { description: `L'envoi WhatsApp reste manuel : ${reminder.paymentUrl || msg.paymentUrl}` }); }
+    catch (error) { tab?.close(); toast.error(error instanceof Error ? error.message : 'Relance impossible'); }
   };
 
   return (
@@ -113,7 +96,7 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-3 self-start md:self-auto">
           <button className="flex items-center gap-2 rounded-lg bg-neutral-900 border border-white/5 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 transition-colors">
-            Août 2026
+            {new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date())}
             <ChevronDown className="h-4 w-4" />
           </button>
           

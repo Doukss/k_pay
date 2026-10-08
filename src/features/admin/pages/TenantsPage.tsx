@@ -20,298 +20,33 @@ import { AgencyDetailModal } from '../components/AgencyDetailModal';
 import { AddAgencyModal } from '../components/AddAgencyModal';
 import type { AgencyDetail } from '../types';
 import { toast } from 'sonner';
-
-const initialAgencesData: AgencyDetail[] = [
-  {
-    id: 1,
-    name: 'Immo Dakar Prestige',
-    shortName: 'ID',
-    responsable: 'Malick Mbodji',
-    email: 'direction@immodakar.sn',
-    phone: '+221 77 450 12 34',
-    city: 'Dakar (Plateau & Fann)',
-    address: '14 Boulevard de la République, Dakar',
-    ninea: '00482918293-2B',
-    plan: 'Plan Pro',
-    status: 'active',
-    subscriptionStatus: 'en_regle',
-    subscriptionPrice: 25000,
-    nextRenewalDate: '12 Novembre 2026',
-    lastPaymentDate: '12 Octobre 2026',
-    paymentGateway: 'Wave',
-    autoRenew: true,
-    locataires: 42,
-    quota: 100,
-    volumeMensuel: 2450000,
-    commissionRate: 1.5,
-    commissionsTotal: 36750,
-    tauxRecouvrement: 94.2,
-    dateAdhesion: '12 Janvier 2026',
-    gateways: {
-      wave: { enabled: true, merchantId: 'WV-DKR-892', status: 'operational' },
-      orangeMoney: { enabled: true, merchantNumber: '+221 77 450 12 34', status: 'operational' },
-      whatsapp: { enabled: true, phoneNumber: '+221 77 450 12 34', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 101, name: 'Mame Diop', property: 'Appartement 2A Plateau', rentVal: 250000, phone: '+221 77 123 45 67', status: 'paid' },
-      { id: 102, name: 'Samba Ndiaye', property: 'Appartement 3B Fann', rentVal: 180000, phone: '+221 76 234 56 78', status: 'late' },
-      { id: 103, name: 'Aïssatou Fall', property: 'Studio 1 Corniche', rentVal: 320000, phone: '+221 78 345 67 80', status: 'late' },
-      { id: 104, name: 'Babacar Ba', property: 'Duplex Fann Résidence', rentVal: 850000, phone: '+221 77 987 65 43', status: 'paid' },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Saint-Louis Immo',
-    shortName: 'SL',
-    responsable: 'Fatou Diop',
-    email: 'contact@saintlouis-immo.sn',
-    phone: '+221 76 567 89 01',
-    city: 'Saint-Louis (Île Nord)',
-    address: 'Rue Blanchot, Saint-Louis',
-    ninea: '00728192837-1A',
-    plan: 'Starter',
-    status: 'active',
-    subscriptionStatus: 'retard',
-    subscriptionPrice: 15000,
-    nextRenewalDate: '18 Septembre 2026',
-    lastPaymentDate: '18 Août 2026',
-    paymentGateway: 'Orange Money',
-    autoRenew: false,
-    locataires: 4,
-    quota: 50,
-    volumeMensuel: 320000,
-    commissionRate: 2.0,
-    commissionsTotal: 6400,
-    tauxRecouvrement: 88.5,
-    dateAdhesion: '18 Février 2026',
-    gateways: {
-      wave: { enabled: true, merchantId: 'WV-STL-410', status: 'operational' },
-      orangeMoney: { enabled: true, merchantNumber: '+221 76 567 89 01', status: 'operational' },
-      whatsapp: { enabled: true, phoneNumber: '+221 76 567 89 01', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 201, name: 'Cheikh Sarr', property: 'Maison Coloniale Sud', rentVal: 120000, phone: '+221 77 888 11 22', status: 'paid' },
-      { id: 202, name: 'Mariama Sy', property: 'Studio Ndar', rentVal: 80000, phone: '+221 78 999 33 44', status: 'pending' },
-      { id: 203, name: 'Ibrahima Gueye', property: 'Appartement Faidherbe', rentVal: 120000, phone: '+221 76 444 55 66', status: 'late' },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Point E Properties',
-    shortName: 'PE',
-    responsable: 'Amadou Diallo',
-    email: 'adiallo@pointe-properties.sn',
-    phone: '+221 77 890 12 34',
-    city: 'Dakar (Point E & Mermoz)',
-    address: 'Avenue Cheikh Anta Diop, Dakar',
-    ninea: '00192837465-3C',
-    plan: 'Business',
-    status: 'active',
-    subscriptionStatus: 'en_regle',
-    subscriptionPrice: 25000,
-    nextRenewalDate: '02 Novembre 2026',
-    lastPaymentDate: '02 Octobre 2026',
-    paymentGateway: 'Wave',
-    autoRenew: true,
-    locataires: 89,
-    quota: 100,
-    volumeMensuel: 9800000,
-    commissionRate: 1.5,
-    commissionsTotal: 147000,
-    tauxRecouvrement: 97.1,
-    dateAdhesion: '02 Mars 2026',
-    gateways: {
-      wave: { enabled: true, merchantId: 'WV-PTE-003', status: 'operational' },
-      orangeMoney: { enabled: true, merchantNumber: '+221 77 890 12 34', status: 'operational' },
-      whatsapp: { enabled: true, phoneNumber: '+221 77 890 12 34', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 301, name: 'Khadija Wade', property: 'Appartement 5A Point E', rentVal: 450000, phone: '+221 77 333 22 11', status: 'paid' },
-      { id: 302, name: 'Oumar Kane', property: 'Villa Mermoz', rentVal: 1200000, phone: '+221 78 555 44 33', status: 'paid' },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Almadies Rentals & Luxury',
-    shortName: 'AR',
-    responsable: 'Khady Sow',
-    email: 'direction@almadies-rentals.sn',
-    phone: '+221 77 333 44 55',
-    city: 'Dakar (Almadies & Ngor)',
-    address: 'Zone des Almadies, Route du Méridien, Dakar',
-    ninea: '00384729104-4D',
-    plan: 'Entreprise',
-    status: 'active',
-    subscriptionStatus: 'en_regle',
-    subscriptionPrice: 60000,
-    nextRenewalDate: '10 Novembre 2026',
-    lastPaymentDate: '10 Octobre 2026',
-    paymentGateway: 'Wave',
-    autoRenew: true,
-    locataires: 245,
-    quota: 500,
-    volumeMensuel: 42100000,
-    commissionRate: 1.0,
-    commissionsTotal: 421000,
-    tauxRecouvrement: 98.4,
-    dateAdhesion: '10 Avril 2026',
-    gateways: {
-      wave: { enabled: true, merchantId: 'WV-ALM-777', status: 'operational' },
-      orangeMoney: { enabled: true, merchantNumber: '+221 77 333 44 55', status: 'operational' },
-      whatsapp: { enabled: true, phoneNumber: '+221 77 333 44 55', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 401, name: 'Jean-Marc Dupont', property: 'Penthouse Almadies Ocean View', rentVal: 3500000, phone: '+221 77 111 22 33', status: 'paid' },
-      { id: 402, name: 'Awa Ndiaye', property: 'Villa avec piscine Ngor', rentVal: 2200000, phone: '+221 78 222 33 44', status: 'paid' },
-    ],
-  },
-  {
-    id: 5,
-    name: 'Thiès Immo Prestige',
-    shortName: 'TI',
-    responsable: 'Ousmane Fall',
-    email: 'ofall@thiesimmo.sn',
-    phone: '+221 76 111 22 33',
-    city: 'Thiès (Centre-ville)',
-    address: 'Avenue Léopold Sédar Senghor, Thiès',
-    ninea: '00572910482-5E',
-    plan: 'Starter',
-    status: 'suspended',
-    subscriptionStatus: 'retard',
-    subscriptionPrice: 15000,
-    nextRenewalDate: '15 Juillet 2026',
-    lastPaymentDate: '15 Juin 2026',
-    paymentGateway: 'Orange Money',
-    autoRenew: false,
-    locataires: 2,
-    quota: 50,
-    volumeMensuel: 150000,
-    commissionRate: 2.0,
-    commissionsTotal: 3000,
-    tauxRecouvrement: 50.0,
-    dateAdhesion: '15 Mai 2026',
-    gateways: {
-      wave: { enabled: false, status: 'error' },
-      orangeMoney: { enabled: false, status: 'not_configured' },
-      whatsapp: { enabled: true, phoneNumber: '+221 76 111 22 33', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 501, name: 'Moussa Cissé', property: 'Appartement Cité Ouvrière', rentVal: 75000, phone: '+221 77 666 77 88', status: 'late' },
-    ],
-  },
-  {
-    id: 6,
-    name: 'Saly Résidences & Villas',
-    shortName: 'SR',
-    responsable: 'Aminata Ba',
-    email: 'contact@saly-residences.sn',
-    phone: '+221 77 654 32 10',
-    city: 'Mbour (Saly Portudal)',
-    address: 'Route Touristique de Saly, Mbour',
-    ninea: '00681928374-6F',
-    plan: 'Business',
-    status: 'active',
-    subscriptionStatus: 'en_regle',
-    subscriptionPrice: 25000,
-    nextRenewalDate: '04 Novembre 2026',
-    lastPaymentDate: '04 Octobre 2026',
-    paymentGateway: 'Wave',
-    autoRenew: true,
-    locataires: 64,
-    quota: 100,
-    volumeMensuel: 7800000,
-    commissionRate: 1.5,
-    commissionsTotal: 117000,
-    tauxRecouvrement: 95.8,
-    dateAdhesion: '04 Juin 2026',
-    gateways: {
-      wave: { enabled: true, merchantId: 'WV-SLY-552', status: 'operational' },
-      orangeMoney: { enabled: true, merchantNumber: '+221 77 654 32 10', status: 'operational' },
-      whatsapp: { enabled: true, phoneNumber: '+221 77 654 32 10', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 601, name: 'François Leroy', property: 'Villa Cocotier Saly', rentVal: 650000, phone: '+221 77 222 11 00', status: 'paid' },
-      { id: 602, name: 'Koumba Cissé', property: 'Bungalow Plage', rentVal: 400000, phone: '+221 78 333 44 55', status: 'paid' },
-    ],
-  },
-  {
-    id: 7,
-    name: 'Casamance Immobilier',
-    shortName: 'CI',
-    responsable: 'Seydou Sané',
-    email: 'info@casamance-immo.sn',
-    phone: '+221 78 432 10 98',
-    city: 'Ziguinchor (Escale)',
-    address: 'Rue du Général de Gaulle, Ziguinchor',
-    ninea: '00293847102-7G',
-    plan: 'Starter',
-    status: 'active',
-    subscriptionStatus: 'essai',
-    subscriptionPrice: 15000,
-    nextRenewalDate: '22 Octobre 2026',
-    trialDaysRemaining: 18,
-    autoRenew: true,
-    locataires: 3,
-    quota: 50,
-    volumeMensuel: 210000,
-    commissionRate: 2.0,
-    commissionsTotal: 4200,
-    tauxRecouvrement: 92.0,
-    dateAdhesion: '22 Juin 2026',
-    gateways: {
-      wave: { enabled: true, merchantId: 'WV-ZIG-109', status: 'operational' },
-      orangeMoney: { enabled: true, merchantNumber: '+221 78 432 10 98', status: 'operational' },
-      whatsapp: { enabled: true, phoneNumber: '+221 78 432 10 98', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 701, name: 'Lamine Mané', property: 'Maison Escale', rentVal: 90000, phone: '+221 77 999 88 77', status: 'paid' },
-    ],
-  },
-  {
-    id: 8,
-    name: 'Touba Invest Immo',
-    shortName: 'TI',
-    responsable: 'Serigne Mbacké',
-    email: 'contact@touba-invest.sn',
-    phone: '+221 77 123 99 88',
-    city: 'Touba / Mbacké',
-    address: 'Boulevard 28, Touba',
-    ninea: '00918273645-8H',
-    plan: 'Business',
-    status: 'active',
-    subscriptionStatus: 'essai',
-    subscriptionPrice: 25000,
-    nextRenewalDate: '12 Octobre 2026',
-    trialDaysRemaining: 8,
-    autoRenew: true,
-    locataires: 120,
-    quota: 500,
-    volumeMensuel: 14500000,
-    commissionRate: 1.0,
-    commissionsTotal: 145000,
-    tauxRecouvrement: 96.5,
-    dateAdhesion: '05 Juillet 2026',
-    gateways: {
-      wave: { enabled: true, merchantId: 'WV-TBA-901', status: 'operational' },
-      orangeMoney: { enabled: true, merchantNumber: '+221 77 123 99 88', status: 'operational' },
-      whatsapp: { enabled: true, phoneNumber: '+221 77 123 99 88', status: 'operational' },
-    },
-    locatairesList: [
-      { id: 801, name: 'Modou Lo', property: 'Immeuble Darou Khoudoss', rentVal: 350000, phone: '+221 76 111 44 22', status: 'paid' },
-    ],
-  },
-];
+import { api } from '@/shared/api/client';
 
 export default function TenantsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlFilter = searchParams.get('filter');
 
-  const [agences, setAgences] = useState<AgencyDetail[]>(initialAgencesData);
+  const [agences, setAgences] = useState<AgencyDetail[]>([]);
+  const [agencyTotal, setAgencyTotal] = useState(0);
+  const [agencyStats, setAgencyStats] = useState({ en_regle: 0, essai: 0, retard: 0, suspended: 0 });
   const [search, setSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<string>(urlFilter || 'all');
   const [selectedAgency, setSelectedAgency] = useState<AgencyDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const refreshAgencies = async () => {
+    const query = new URLSearchParams({ limit: '100' });
+    if (search.trim()) query.set('search', search.trim());
+    if (['active', 'suspended'].includes(selectedFilter)) query.set('status', selectedFilter);
+    if (['en_regle', 'essai', 'retard'].includes(selectedFilter)) query.set('subscriptionStatus', selectedFilter);
+    const { data } = await api.get(`/admin/agencies?${query}`);
+    setAgencyTotal(data.total);
+    setAgencyStats(data.stats);
+    setAgences(data.items.map((a: any) => ({ ...a, id: String(a.id), shortName: a.name.split(/\s+/).map((x: string) => x[0]).join('').slice(0, 2).toUpperCase(), nextRenewalDate: a.nextRenewalDate ? new Date(a.nextRenewalDate).toLocaleDateString('fr-FR') : '—', dateAdhesion: a.dateAdhesion ? new Date(a.dateAdhesion).toLocaleDateString('fr-FR') : '—', lastPaymentDate: a.lastPaymentDate ? new Date(a.lastPaymentDate).toLocaleDateString('fr-FR') : undefined })));
+  };
+
+  useEffect(() => { refreshAgencies().catch((error) => toast.error(error instanceof Error ? error.message : 'Chargement des agences impossible')); }, [search, selectedFilter]);
 
   // Sync if URL search params change
   useEffect(() => {
@@ -325,10 +60,10 @@ export default function TenantsPage() {
   const itemsPerPage = 5;
 
   // Platform Network Calculations
-  const totalAgences = agences.length;
-  const enRegleCount = agences.filter((a) => a.subscriptionStatus === 'en_regle').length;
-  const trialCount = agences.filter((a) => a.subscriptionStatus === 'essai').length;
-  const retardCount = agences.filter((a) => a.subscriptionStatus === 'retard').length;
+  const totalAgences = agencyTotal;
+  const enRegleCount = agencyStats.en_regle;
+  const trialCount = agencyStats.essai;
+  const retardCount = agencyStats.retard;
 
   // Filtered Agences
   const filteredAgences = useMemo(() => {
@@ -378,70 +113,28 @@ export default function TenantsPage() {
     }
   };
 
-  const handleOpenDetail = (agency: AgencyDetail) => {
-    setSelectedAgency(agency);
-    setIsModalOpen(true);
+  const handleOpenDetail = async (agency: AgencyDetail) => {
+    try {
+      const { data } = await api.get(`/admin/agencies/${agency.id}`);
+      setSelectedAgency({ ...agency, ...data, id: String(data.id), shortName: agency.shortName, nextRenewalDate: data.nextRenewalDate ? new Date(data.nextRenewalDate).toLocaleDateString('fr-FR') : '—', dateAdhesion: data.dateAdhesion ? new Date(data.dateAdhesion).toLocaleDateString('fr-FR') : '—', lastPaymentDate: data.lastPaymentDate ? new Date(data.lastPaymentDate).toLocaleDateString('fr-FR') : undefined });
+      setIsModalOpen(true);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Détails agence indisponibles'); }
   };
 
-  const handleToggleStatus = (agencyId: number) => {
-    setAgences((prev) =>
-      prev.map((a) => {
-        if (a.id === agencyId) {
-          const newStatus = a.status === 'active' ? 'suspended' : 'active';
-          toast.success(
-            newStatus === 'active'
-              ? `Agence "${a.name}" réactivée avec succès`
-              : `Agence "${a.name}" suspendue`
-          );
-          const updated = { ...a, status: newStatus as AgencyDetail['status'] };
-          if (selectedAgency?.id === agencyId) {
-            setSelectedAgency(updated);
-          }
-          return updated;
-        }
-        return a;
-      })
-    );
+  const handleToggleStatus = async (agencyId: string | number) => {
+    const agency = agences.find((a) => String(a.id) === String(agencyId)); if (!agency) return;
+    const status = agency.status === 'active' ? 'suspended' : 'active';
+    try {
+      await api.patch(`/admin/agencies/${agencyId}/status`, { status });
+      await refreshAgencies();
+      if (selectedAgency && String(selectedAgency.id) === String(agencyId)) setSelectedAgency({ ...selectedAgency, status });
+      toast.success(status === 'active' ? `Agence "${agency.name}" réactivée` : `Agence "${agency.name}" suspendue`);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Modification du statut impossible'); }
   };
 
-  const handleRenewSubscription = (agencyId: number) => {
-    setAgences((prev) =>
-      prev.map((a) => {
-        if (a.id === agencyId) {
-          const nextDate = new Date();
-          nextDate.setDate(nextDate.getDate() + 30);
-          const formattedRenewal = new Intl.DateTimeFormat('fr-FR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          }).format(nextDate);
-          const today = new Intl.DateTimeFormat('fr-FR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          }).format(new Date());
-
-          const updated: AgencyDetail = {
-            ...a,
-            subscriptionStatus: 'en_regle',
-            lastPaymentDate: today,
-            paymentGateway: a.paymentGateway || 'Wave',
-            nextRenewalDate: formattedRenewal,
-            trialDaysRemaining: undefined,
-          };
-
-          toast.success(
-            `Abonnement de l'agence "${a.name}" régularisé (+30 jours jusqu'au ${formattedRenewal})`
-          );
-
-          if (selectedAgency?.id === agencyId) {
-            setSelectedAgency(updated);
-          }
-          return updated;
-        }
-        return a;
-      })
-    );
+  const handleRenewSubscription = async (agencyId: string | number) => {
+    try { const { data } = await api.post(`/admin/agencies/${agencyId}/renew`, { method: 'Wave' }); await refreshAgencies(); toast.success(`Paiement simulé enregistré (${Number(data.amount).toLocaleString()} FCFA)`); }
+    catch (error) { toast.error(error instanceof Error ? error.message : 'Renouvellement impossible'); }
   };
 
   const handleContactWhatsAppRenew = (agency: AgencyDetail) => {
@@ -454,9 +147,17 @@ export default function TenantsPage() {
     toast.success(`Relance d'abonnement WhatsApp préparée pour ${agency.responsable}`);
   };
 
-  const handleAddAgency = (newAgency: AgencyDetail) => {
-    setAgences((prev) => [newAgency, ...prev]);
-    setCurrentPage(1);
+  const handleAddAgency = async (newAgency: AgencyDetail) => {
+    const planId = newAgency.plan === 'Entreprise' ? 'enterprise' : newAgency.plan.toLowerCase();
+    const { data } = await api.post('/admin/agencies', {
+      agencyName: newAgency.name, contactName: newAgency.responsable, email: newAgency.email,
+      telephone: newAgency.phone, city: newAgency.city, address: newAgency.address, ninea: newAgency.ninea,
+      planId, initialSubscriptionStatus: newAgency.subscriptionStatus === 'en_regle' ? 'paid' : 'trial',
+      waveActive: newAgency.gateways.wave.enabled, orangeMoneyActive: newAgency.gateways.orangeMoney.enabled,
+      whatsappActive: newAgency.gateways.whatsapp.enabled,
+    });
+    await refreshAgencies(); setCurrentPage(1);
+    toast.success(`Agence créée. Mot de passe provisoire : ${data.credentials.temporaryPassword}`, { duration: 15000 });
   };
 
   return (

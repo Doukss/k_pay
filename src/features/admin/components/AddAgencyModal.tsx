@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 interface AddAgencyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddAgency: (agency: AgencyDetail) => void;
+  onAddAgency: (agency: AgencyDetail) => void | Promise<void>;
   existingAgencies: AgencyDetail[];
 }
 
@@ -89,7 +89,7 @@ export function AddAgencyModal({
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -158,9 +158,13 @@ export function AddAgencyModal({
       locatairesList: [],
     };
 
-    onAddAgency(newAgency);
-    toast.success(`Agence "${newAgency.name}" enregistrée avec succès !`);
-    onClose();
+    try {
+      await onAddAgency(newAgency);
+      toast.success(`Agence "${newAgency.name}" enregistrée avec succès !`);
+      onClose();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Création de l’agence impossible');
+    }
   };
 
   return (

@@ -3,7 +3,7 @@ export type AgencyStatus = 'active' | 'suspended' | 'pending';
 export type SubscriptionStatus = 'en_regle' | 'essai' | 'retard';
 
 export interface AgencyTenantItem {
-  id: number;
+  id: string | number;
   name: string;
   property: string;
   rentVal: number;
@@ -30,7 +30,7 @@ export interface AgencyGatewayConfig {
 }
 
 export interface AgencyDetail {
-  id: number;
+  id: string | number;
   name: string;
   shortName: string;
   responsable: string;

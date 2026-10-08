@@ -1,5 +1,5 @@
 export interface WhatsAppMessagePayload {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   property: string;

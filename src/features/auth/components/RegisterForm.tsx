@@ -7,12 +7,10 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { registerSchema, type RegisterFormValues } from '../schemas/register.schema';
 import { useAuthStore } from '@/stores/authStore';
-import { useAgencyStore } from '@/stores/agencyStore';
 
 export function RegisterForm() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
-  const { startTrial } = useAgencyStore();
+  const { register: createAccount } = useAuthStore();
 
   const {
     register,
@@ -23,13 +21,13 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (values: RegisterFormValues) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    login(values.email);
-    startTrial('starter');
-    toast.success('Compte agence créé avec succès', {
-      description: 'Votre essai gratuit de 30 jours est actif.',
-    });
-    navigate('/agence/dashboard');
+    try {
+      await createAccount(values);
+      toast.success('Compte agence créé avec succès', { description: 'Votre essai gratuit de 30 jours est actif.' });
+      navigate('/agence/dashboard');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Création du compte impossible');
+    }
   };
 
   return (

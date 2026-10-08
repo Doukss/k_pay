@@ -23,61 +23,44 @@ import {
   Cell,
 } from 'recharts';
 import { Link } from 'react-router-dom';
-
-const mrrData = [
-  { name: 'Mars', mrr: 850000 },
-  { name: 'Avril', mrr: 950000 },
-  { name: 'Mai', mrr: 1050000 },
-  { name: 'Juin', mrr: 1100000 },
-  { name: 'Juil.', mrr: 1200000 },
-  { name: 'Août', mrr: 1380000 },
-];
-
-const mobileMoneyMix = [
-  { name: 'Wave Sénégal (68%)', value: 68, color: '#1da1f2' },
-  { name: 'Orange Money (32%)', value: 32, color: '#ff7900' },
-];
-
-const topAgencies = [
-  { rank: 1, name: 'Almadies Rentals & Luxury', volume: '42 100 000 F', locataires: 245, plan: 'Entreprise', recouvrement: '98.4%' },
-  { rank: 2, name: 'Point E Properties', volume: '9 800 000 F', locataires: 89, plan: 'Plan Pro', recouvrement: '97.1%' },
-  { rank: 3, name: 'Immo Dakar Prestige', volume: '2 450 000 F', locataires: 42, plan: 'Plan Pro', recouvrement: '94.2%' },
-];
-
-const recentNetworkTransactions = [
-  { id: 1, agency: 'Almadies Rentals', tenant: 'Jean-Marc Dupont', amount: '3 500 000 F', method: 'Wave', status: 'Certifié', time: 'Il y a 5 min' },
-  { id: 2, agency: 'Point E Properties', tenant: 'Khadija Wade', amount: '450 000 F', method: 'Orange Money', status: 'Certifié', time: 'Il y a 22 min' },
-  { id: 3, agency: 'Immo Dakar', tenant: 'Mame Diop', amount: '250 000 F', method: 'Wave', status: 'Certifié', time: 'Il y a 45 min' },
-  { id: 4, agency: 'Saint-Louis Immo', tenant: 'Cheikh Sarr', amount: '120 000 F', method: 'Wave', status: 'Certifié', time: 'Il y a 2 h' },
-];
+import { useEffect, useState } from 'react';
+import { api } from '@/shared/api/client';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
+  const [dashboard, setDashboard] = useState<any>(null);
+  useEffect(() => { api.get('/admin/dashboard').then(({ data }) => setDashboard(data)).catch((error) => toast.error(error instanceof Error ? error.message : 'Dashboard indisponible')); }, []);
+  const statsData = dashboard?.stats;
+  const mrrData = dashboard?.mrrData || [];
+  const mobileMoneyMix: { name: string; value: number; color: string }[] = (dashboard?.paymentMix || []).map((item: any) => ({ name: `${item.method} (${item.share}%)`, value: item.share, color: item.method === 'wave' ? '#1da1f2' : item.method === 'orange_money' ? '#ff7900' : '#E5B842' }));
+  const topAgencies: any[] = (dashboard?.topAgencies || []).map((agency: any, i: number) => ({ rank: i + 1, ...agency, volume: `${Number(agency.volume).toLocaleString()} F`, recouvrement: `${agency.recouvrement}%` }));
+  const recentNetworkTransactions: any[] = (dashboard?.recentTransactions || []).map((tx: any) => ({ ...tx, amount: `${Number(tx.amount).toLocaleString()} F`, method: tx.method === 'orange_money' ? 'Orange Money' : tx.method === 'wave' ? 'Wave' : tx.method, status: tx.status === 'reussi' ? 'Validé' : tx.status, time: new Date(tx.date).toLocaleString('fr-FR') }));
   const stats = [
     {
       title: 'MRR Plateforme (Revenus SaaS)',
-      value: '1 380 000 FCFA',
-      change: '+18.4% vs mois dernier',
+      value: `${Number(statsData?.mrr || 0).toLocaleString()} FCFA`,
+      change: `${Number(statsData?.subscriptionRevenue || 0).toLocaleString()} FCFA d'abonnements`,
       icon: DollarSign,
       color: 'text-[#E5B842]',
     },
     {
       title: 'Parc d\'Agences Actives',
-      value: '14 agences',
-      change: 'Sur 15 partenaires affiliés',
+      value: `${statsData?.activeAgencies || 0} agences`,
+      change: `${statsData?.agencies || 0} agences enregistrées`,
       icon: Building,
       color: 'text-rose-400',
     },
     {
       title: 'Volume Loyers Traités (Mois)',
-      value: '54 820 000 FCFA',
-      change: '100% sécurisé via Mobile Money',
+      value: `${Number(statsData?.monthlyRentVolume || 0).toLocaleString()} FCFA`,
+      change: `${statsData?.collectionRate || 0}% de taux de collecte`,
       icon: ShieldCheck,
       color: 'text-emerald-400',
     },
     {
       title: 'Campagnes Relances WhatsApp',
-      value: '2 450 envois',
-      change: '99.4% taux de délivrabilité',
+      value: `${statsData?.remindersSent || 0} envois`,
+      change: 'Relances WhatsApp enregistrées',
       icon: Send,
       color: 'text-sky-400',
     },
@@ -104,7 +87,7 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Réseau National Opérationnel
+            <span className={`h-2 w-2 rounded-full ${dashboard ? 'bg-emerald-400' : 'bg-amber-400'}`} /> {dashboard ? 'Données synchronisées' : 'Connexion au serveur…'}
           </span>
         </div>
       </div>
@@ -143,7 +126,7 @@ export default function DashboardPage() {
                   Conformité des Abonnements SaaS du Réseau
                 </CardTitle>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  75% à jour
+                  {statsData ? `${statsData.agencies ? Math.round((statsData.subscriptionCompliance.en_regle / statsData.agencies) * 100) : 0}% à jour` : '—'}
                 </span>
               </div>
               <CardDescription className="text-xs text-neutral-400 mt-0.5">
@@ -169,7 +152,7 @@ export default function DashboardPage() {
             >
               <div>
                 <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> 5 Agences En Règle
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {statsData?.subscriptionCompliance.en_regle || 0} Agence(s) en règle
                 </p>
                 <p className="text-lg font-bold font-mono text-white mt-1">100 000 F/m</p>
                 <p className="text-[10px] text-neutral-400 mt-0.5">Cotisations mensuelles payées</p>
@@ -184,9 +167,9 @@ export default function DashboardPage() {
             >
               <div>
                 <p className="text-xs text-[#E5B842] font-semibold flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" /> 2 Agences en Essai 30j
+                  <Sparkles className="h-3.5 w-3.5" /> {statsData?.subscriptionCompliance.essai || 0} Agence(s) en Essai
                 </p>
-                <p className="text-lg font-bold font-mono text-white mt-1">40 000 F en attente</p>
+                <p className="text-lg font-bold font-mono text-white mt-1">{statsData?.subscriptionCompliance.essai || 0} abonnement(s)</p>
                 <p className="text-[10px] text-neutral-400 mt-0.5">Conversion après les 30 jours</p>
               </div>
               <span className="text-xs text-neutral-500 group-hover:text-[#E5B842] group-hover:translate-x-0.5 transition-all">→</span>
@@ -199,10 +182,10 @@ export default function DashboardPage() {
             >
               <div>
                 <p className="text-xs text-rose-400 font-semibold flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 animate-pulse" /> 2 Renouvellements Dus
+                  <AlertTriangle className="h-3.5 w-3.5 animate-pulse" /> {statsData?.subscriptionCompliance.retard || 0} Renouvellement(s) dû(s)
                 </p>
-                <p className="text-lg font-bold font-mono text-rose-400 mt-1">30 000 FCFA</p>
-                <p className="text-[10px] text-rose-300/80 mt-0.5 font-medium">Saint-Louis Immo & Thiès Immo</p>
+                <p className="text-lg font-bold font-mono text-rose-400 mt-1">Abonnements à vérifier</p>
+                <p className="text-[10px] text-rose-300/80 mt-0.5 font-medium">Données issues des statuts actuels</p>
               </div>
               <span className="text-xs text-rose-400 group-hover:translate-x-0.5 transition-all">→</span>
             </Link>
@@ -222,7 +205,7 @@ export default function DashboardPage() {
               </CardDescription>
             </div>
             <span className="text-xs font-mono font-bold text-[#E5B842] bg-[#E5B842]/10 border border-[#E5B842]/20 px-2.5 py-1 rounded-lg">
-              +62.3% en 2026
+              MRR · 6 mois
             </span>
           </CardHeader>
           <CardContent className="h-72">
@@ -279,18 +262,10 @@ export default function DashboardPage() {
             </div>
 
             <div className="w-full space-y-2 pt-2 border-t border-white/5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-neutral-300">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#1da1f2]" /> Wave Sénégal
-                </span>
-                <span className="font-bold text-white font-mono">68 %</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-neutral-300">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#ff7900]" /> Orange Money
-                </span>
-                <span className="font-bold text-white font-mono">32 %</span>
-              </div>
+              {mobileMoneyMix.length ? mobileMoneyMix.map((entry) => <div key={entry.name} className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-neutral-300"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />{entry.name.split(' (')[0]}</span>
+                <span className="font-bold text-white font-mono">{entry.value} %</span>
+              </div>) : <p className="text-neutral-500">Aucun paiement enregistré.</p>}
             </div>
           </CardContent>
         </Card>
